@@ -1,0 +1,16 @@
+{
+  "name": "chibimmo-server",
+  "version": "1.0.0",
+  "description": "Serverside work for this mmo",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "termitavee",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.15.5",
+    "socket.io": "^2.0.3"
+  }
+}
