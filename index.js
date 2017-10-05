@@ -2,7 +2,16 @@ const socketio = require('socket.io')
 const express = require('express')
 const http = require('http')
 //const https = require('https')
+var fs = require('fs');
+var util = require('util');
 
+var log_file = fs.createWriteStream(__dirname + '/console.log', {flags : 'w'});
+var log_stdout = process.stdout;
+//console log that saves in file
+fileLog = function(d) { 
+  log_file.write(util.format(d) + '\n');
+  log_stdout.write(util.format(d) + '\n');
+};
 const app = express()
 const server = http.Server(app)
 
@@ -10,6 +19,7 @@ const io = socketio(server,{
     path: '/game',
     serveClient: false,
 })
+
 //TDO comprobar extructura en la web de socket.io
 //TODO usar raiz y otras rutas para login y otras funciones en app
 
@@ -32,7 +42,8 @@ app.get('/login', function(req, res){
 
 app.get('/signup', function(req, res){
 	//crear usuario
-	
+	fileLog("req")
+	fileLog(req)
 });
 
 app.get('/create', function(req, res){
