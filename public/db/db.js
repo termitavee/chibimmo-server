@@ -1,4 +1,44 @@
 //objetos para insertar en base de datos
+const database = null;
+const MongoClient = require('mongodb').MongoClient
+
+
+
+const open = ()=>{
+    const url = 'mongodb://localhost:27017/chibimmo';
+    MongoClient.connect(url, function(err, db) {
+        assert.equal(null, err);
+        database = db;
+        
+    });
+    
+}
+
+const close = ()=>{
+    if(database!=null) database = null
+}
+
+const queries = ()=>{
+    //get
+    if(database==null) open()
+    
+    const elements = db.collection('documents');
+    //insert, remove, rename, save, update, distinct, count, drop, findAndModify, findAndRemove, find, findOne, stats
+    elements.find({}).toArray(function(err, docs) {
+        console.log("Found?");
+    })
+
+
+
+}
+
+
+
+
+
+
+//modelos
+
 class User{
     constructor(id, nick, pass, email, characters, login) {
         this.id = id; //string
@@ -65,8 +105,3 @@ class article{
         this.important = important//boolean
     }
 }
-
-/**
-* en la bd coleccion de usuarios, personajes, mascotas e inventarios
-* 
-*/

@@ -11,6 +11,7 @@
   "license": "MIT",
   "dependencies": {
     "express": "^4.15.5",
+    "mongodb": "^2.2.31",
     "socket.io": "^2.0.3"
   }
 }
