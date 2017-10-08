@@ -3,11 +3,10 @@ const express = require('express')
 const http = require('http')
 const bodyParser = require('body-parser');
 //const https = require('https')
-var fs = require('fs');
-var util = require('util');
 
-import {fileLog, parseBody} from 'public/utils';
-import{checkUser,checkPass,checkToken,addUser, getFullUser} from 'public/db/db'
+
+const {fileLog, parseBody} = require('./public/utils');
+const {checkUser,checkPass,checkToken,addUser, getFullUser} = require('./public/db/db')
 
 const app = express()
 const server = http.Server(app)

@@ -110,7 +110,6 @@ const deleteCharacter = ()=>{
 //modelos
 
 class User{
-    jsonObjet;
     constructor(id, nick, pass, token, email, characters, started, login, friendList) {
         this.nick = nick;//string
         this.pass = pass;//string
@@ -141,6 +140,7 @@ class Character{
             life
             magic
             hab
+            money
             fixed
             fuerza
             resistencia

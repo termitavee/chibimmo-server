@@ -1,3 +1,6 @@
+var fs = require('fs');
+var util = require('util');
+
 const log_file = fs.createWriteStream(__dirname + '/console.log', {flags : 'w'});
 const log_stdout = process.stdout;
 
@@ -11,4 +14,4 @@ parseBody = function(text){
     return JSON.parse(Object.keys(text)[0])
 }
 
-export default {fileLog, parseBody}
+module.exports = {fileLog, parseBody}
