@@ -43,11 +43,11 @@ app.get('/', function(req, res){
 });
 
 app.get('/login', function(req, res){
-	
+
 	const {user, pass, token} = parseBody(req.body)
 	/**mobile access */
 	if(token!=null && checkToken(token)){		
-		//TODO update token
+		//TODO update token, just for mobile
 		res.send({status: "success", user: getFullUser(user)})
 		
 	}
@@ -61,24 +61,28 @@ app.get('/login', function(req, res){
 	
 });
 
-app.post('/signup', function(req, res){
+app.get('/signup', function(req, res){
 	//crear usuario
 	const {user, pass, email} = parseBody(req.body)
+	
 	//comprobar si existe usuario
-	if(checkUser(user)){
-		//TODO error existe
-	}else{
-		//comprobar si existe email
+	if(checkUser(user))
+	res.send({status: "fairule", error: "user"})
+	
+	//comprobar si existe email
+	const emailPatt = /[A-Z0-9._%+-]+@[A-Z0-9.-]+.[A-Z]{2,4}/i;
+	if(!emailPatt.test(email))
+	res.send({status: "fairule", error: "email"})
+
+	//si no se inserta correctamente
+	if(!addUser(user, pass, email, new Date()))
+	res.send({status: "fairule", error: "unknown"})
+
+	//si no ha fallado nada se manda los datos insertados
+	const userData = getFullUser(user)
+	res.send({status: "success", user: userData})
 		
-		//comprobar seguridad de la contraseña
-		addUser(user, pass, email, new Date())
-		//TODO success
-	}
-	
-	
-	//si algo anterior falla, parar y enviar respuesta
-	
-	//si todo correcto enviar verificación por email
+	//TODO si todo correcto enviar verificación por email
 });
 
 app.get('/create', function(req, res){

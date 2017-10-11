@@ -105,12 +105,10 @@ const deleteCharacter = ()=>{
 
 
 
-
-
 //modelos
 
 class User{
-    constructor(id, nick, pass, token, email, characters, started, login, friendList) {
+    constructor(nick, pass, token, email, characters, started, login, friendList) {
         this.nick = nick;//string
         this.pass = pass;//string
         this.token = token;//string
@@ -123,11 +121,10 @@ class User{
 }
 
 class Character{
-    constructor(UserId, id, name, type, qualities, statistics, equipment, inventory, pets, login) {
-        this.UserId = UserId; //string
-        this.id = id; //string
+    constructor(Usernick,name, type, qualities, statistics, equipment, inventory, pets, login) {
+        this.Usernick = Usernick; //string
         this.name = name;//string
-        this.type = type;//string soldier/mage
+        this.type = type;//string soldier/mage/rogue
         this.qualities = qualities;
         /*{
             sprite color
@@ -142,6 +139,7 @@ class Character{
             hab
             money
             fixed
+            type (off, deff)
             fuerza
             resistencia
             inteligencia
@@ -159,14 +157,71 @@ class Character{
             rightLeg:
         }*/
         this.inventory = inventory;//[]
-        this.pets = pets//objet
+        this.pets = pets//objet or []
+        this.archivements = archivements//[]
         this.login = login;//date
     }
 }
 
+class Monster{
+    constructor(level, size) {
+        this.level = level;//string
+        this.size = size;
+    }
+}
+
+//borrar, lo almacena el cliente
+class NPC{
+    constructor( name, type, qualities, statistics, equipment, inventory, pets, login) {
+        this._id =_id; //string
+        this.name = name;//string
+        this.type = type;//string seller/standar/whatever
+        this.qualities = qualities;
+        /*{
+            sprite color
+            hair
+            hair color
+        }*/
+        this.equipment = equipment;
+        /*{
+            head:
+            body:
+            leftArm:
+            rightArm:
+            leftLeg:
+            rightLeg:
+        }*/
+        this.inventory = inventory;//[]
+    }
+}
+
+class Monster{
+    constructor(_id, name, statistics, sprite, drop) {
+        this._id =_id; //string
+        this.name = name;//string
+        this.statistics = statistics;
+        /*{
+            variable
+            life
+            magic
+            hab
+            money
+            fixed
+            fuerza
+            resistencia
+            inteligencia
+            mente
+            destreza
+            carisma
+        }*/
+        this.sprite = sprite;
+        this.drop = drop//[] items that the user gets
+    }
+}
+
 class Pet{
-    constructor(id, name, sprite, action) {
-        this.id = id; //string
+    constructor(_id, name, sprite, action) {
+        this._id =_id; //string
         this.name = name;//string
         this.sprite = sprite;//number
         this.action = action;//{name, endDate}
@@ -174,15 +229,15 @@ class Pet{
     }
 }
 
-class Items{
+class Inventory{
     constructor(items) {
         this.items = items;//[]
     }
 }
 
 class Item{
-    constructor(id, name, sprite, description, data) {
-        this.id = id;//
+    constructor(_id, name, sprite, description, data) {
+        this._id =_id;//
         this.name = name;//
         this.sprite = sprite;//
         this.description = description;//
@@ -191,16 +246,15 @@ class Item{
 }
 
 class News{
-    constructor(id, articles) {
-        this.id = id; //string
+    constructor(articles) {
         this.articles = articles;//[]
     }
     
 }
 
 class article{
-    constructor(id, name, description, update, event, important) {
-        this.id = id; //string
+    constructor(_id, name, description, update, event, important) {
+        this._id =_id; //string
         this.name = name;//string
         this.description = description;//string soldier/mage
         this.update = update;//boolean
