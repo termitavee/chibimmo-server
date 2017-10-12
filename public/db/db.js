@@ -58,7 +58,7 @@ const checkToken = (user, token)=>{
 }
 
 //user-related queries
-const addUser = (nick, pass, email, currentDate)=>{
+const addUser = (nick, pass, email, currentDate, token)=>{
     //create user
     
     MongoClient.connect(url, function(err, db) {
@@ -71,12 +71,16 @@ const addUser = (nick, pass, email, currentDate)=>{
 const getFullUser = (user)=>{
     //get all user 
     let userFound=0
-    
+    //TODO why userFound is 0??
     MongoClient.connect(url, function(err, db) {
-        userFound = db.collection('user').find({nick: userName})
+        userFound = db.collection('user').find({nick: user})
     });
     
     return userFound
+}
+
+const updateToken = (user, device, token)=>{
+    
 }
 
 const updateUser = ()=>{
@@ -103,7 +107,7 @@ const deleteCharacter = ()=>{
     
 }
 
-
+module.exports = {checkUser,checkPass,checkToken,addUser, getFullUser, updateToken}
 
 //modelos
 
@@ -192,30 +196,6 @@ class NPC{
             rightLeg:
         }*/
         this.inventory = inventory;//[]
-    }
-}
-
-class Monster{
-    constructor(_id, name, statistics, sprite, drop) {
-        this._id =_id; //string
-        this.name = name;//string
-        this.statistics = statistics;
-        /*{
-            variable
-            life
-            magic
-            hab
-            money
-            fixed
-            fuerza
-            resistencia
-            inteligencia
-            mente
-            destreza
-            carisma
-        }*/
-        this.sprite = sprite;
-        this.drop = drop//[] items that the user gets
     }
 }
 

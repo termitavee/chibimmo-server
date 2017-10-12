@@ -2,12 +2,13 @@ const socketio = require('socket.io')
 const express = require('express')
 const http = require('http')
 const bodyParser = require('body-parser');
+const crypto = require("crypto");
 //const https = require('https')
 
-
 const {fileLog, parseBody} = require('./public/utils');
-const {checkUser,checkPass,checkToken,addUser, getFullUser} = require('./public/db/db')
+const {checkUser,checkPass,checkToken,addUser, getFullUser, updateToken} = require('./public/db/db')
 
+const PORT = 3000
 const app = express()
 const server = http.Server(app)
 
@@ -42,47 +43,79 @@ app.get('/', function(req, res){
 	
 });
 
-app.get('/login', function(req, res){
-
-	const {user, pass, token} = parseBody(req.body)
-	/**mobile access */
-	if(token!=null && checkToken(token)){		
-		//TODO update token, just for mobile
+app.post('/login', function(req, res){
+	
+	const {user, pass, token=null, remember=false, device=null} = parseBody(req.body)
+	/**remembered user */
+	if(token!=null && checkToken(user, device, token)){		
+		
+		const token = crypto.randomBytes(10).toString('hex');
+		console.log("token="+token)
+		updateToken(user,device, token)
 		res.send({status: "success", user: getFullUser(user)})
 		
 	}
-	
-	if(!valid && checkUser(user)){
-		checkPass(user,pass)
-		? res.send({status: "success", user: getFullUser(user)})
-		: res.send({status: "fairule", error: "password"})
-	}
+
+	if(checkUser(user)){
+		if(checkPass(user,pass)){
+			if(remember){
+				const token = crypto.randomBytes(10).toString('hex');
+				console.log("token="+token)
+				updateToken(user,device, token)
+			}
+			//TODO update user last login
+			res.send({status: "success", user: getFullUser(user)})
+		}else
+		res.send({status: "fairule", error: "password"})		
+	}else
 	res.send({status: "fairule", error: "user"})
 	
 });
 
-app.get('/signup', function(req, res){
+app.post('/signup', function(req, res){
 	//crear usuario
-	const {user, pass, email} = parseBody(req.body)
-	
-	//comprobar si existe usuario
-	if(checkUser(user))
-	res.send({status: "fairule", error: "user"})
-	
-	//comprobar si existe email
-	const emailPatt = /[A-Z0-9._%+-]+@[A-Z0-9.-]+.[A-Z]{2,4}/i;
-	if(!emailPatt.test(email))
-	res.send({status: "fairule", error: "email"})
-
-	//si no se inserta correctamente
-	if(!addUser(user, pass, email, new Date()))
-	res.send({status: "fairule", error: "unknown"})
-
-	//si no ha fallado nada se manda los datos insertados
-	const userData = getFullUser(user)
-	res.send({status: "success", user: userData})
+	try{
+		const {user, pass, email} = parseBody(req.body)
+		console.log("user " +user+ " pass "+pass+ " email "+email)
 		
-	//TODO si todo correcto enviar verificación por email
+		//comprobar si existe usuario
+		console.log('check user')
+		if(checkUser(user)){
+			console.log('User already exists')
+			res.send({status: "fairule", error: "user"})
+		}
+		console.log('User is available')
+		
+		//comprobar si existe email
+		console.log('check mail')
+		const emailPatt = /[A-Z0-9._%+-]+@[A-Z0-9.-]+.[A-Z]{2,4}/i;
+		if(!emailPatt.test(email)){
+			console.log('email not valid')
+			res.send({status: "fairule", error: "email"})
+		}
+		console.log('email ok')
+		
+		//si no se inserta correctamente
+		if(!addUser(user, pass, email, new Date())){
+			
+			console.log('not inserted properly becouse unknown reason')
+			res.send({status: "fairule", error: "unknown"})
+		}
+		
+		console.log('inserted properly')
+		
+		
+		//si no ha fallado nada se manda los datos insertados
+		const userData = getFullUser(user)
+		console.log(userData)
+		res.send({status: "success", user: userData})
+		
+		//TODO enviar verificación por email
+	}catch(e){
+		console.log(e.message)
+		res.send({message: 'navegador?'})
+	}
+	
 });
 
 app.get('/create', function(req, res){
@@ -120,4 +153,5 @@ ioChat.on('connection', function(cocket){
 	
 })
 
-server.listen(3000);
+server.listen(PORT);
+console.log('Server suposely running on port '+PORT)
