@@ -31,7 +31,7 @@ const checkUser = (userName)=>{
         const found = users.find({nick: userName})
         quantity = found.count()
     });
-
+    
     return quantity=0? false:true;
 }
 
@@ -42,7 +42,7 @@ const checkPass = (userName, pass)=>{
         const found = users.find({nick: userName, pass})
         quantity = found.count()
     });
-
+    
     return quantity=0? false:true;
 }
 
@@ -53,16 +53,16 @@ const checkToken = (user, token)=>{
         const found = users.find({nick: user, token})
         quantity = found.count()
     });
-
+    
     return quantity=0? false:true;
 }
 
 //user-related queries
 const addUser = (nick, pass, email, currentDate)=>{
     //create user
-
+    
     MongoClient.connect(url, function(err, db) {
-        db.collection('user').insert({"nick": nick, "pass": pass,"token": "", "email" : email, "characters": [],"started": currentDate ,"login": currentDate, "friendList": []})
+        db.collection('user').insert({"nick": nick, "pass": pass,"token": {}, "email" : email, "characters": [],"started": currentDate ,"login": currentDate, "friendList": []})
         
     });
     
@@ -71,11 +71,11 @@ const addUser = (nick, pass, email, currentDate)=>{
 const getFullUser = (user)=>{
     //get all user 
     let userFound=0
-
+    
     MongoClient.connect(url, function(err, db) {
         userFound = db.collection('user').find({nick: userName})
     });
-
+    
     return userFound
 }
 
@@ -108,10 +108,10 @@ const deleteCharacter = ()=>{
 //modelos
 
 class User{
-    constructor(nick, pass, token, email, characters, started, login, friendList) {
+    constructor(nick, pass,deskToken, mobToken, email, characters, started, login, friendList) {
         this.nick = nick;//string
         this.pass = pass;//string
-        this.token = token;//string
+        this.token = token;//{id: token, id:token}
         this.email = email;//string
         this.characters = characters;//array
         this.login = login;//date
