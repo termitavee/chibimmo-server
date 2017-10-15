@@ -3,55 +3,51 @@ const database = null;
 const MongoClient = require('mongodb').MongoClient
 const url = 'mongodb://localhost:27017/chibimmo';
 
-const open = ()=>{
-    if(database==null){
-        MongoClient.connect(url, function(err, db) {
-            database = db;
-        });
-    }
-}
-
-
-const queries = ()=>{
-    //get
-    
-    const elements = db.collection('documents');
-    //insert, remove, rename, save, update, distinct, count, drop, findAndModify, findAndRemove, find, findOne, stats
-    elements.find({}).toArray(function(err, docs) {
-        console.log("Found?");
-    })
-    
-}
-
+//insert, remove, rename, save, update, distinct, count, drop, findAndModify, findAndRemove, find, findOne, stats
 //LogIn action
 const checkUser = (userName)=>{
-    let quantity=0
+
     MongoClient.connect(url, function(err, db) {
-        const users = db.collection('user')
-        const found = users.find({nick: userName})
-        quantity = found.count()
+        db.collection('User').findOne({"nick":userName}).then((found)=>{
+            console.log('found')
+            console.log(found)
+            if(found!==null)
+            return true
+            return false
+        })
+        
     });
-    
-    return quantity=0? false:true;
+
+
 }
 
 const checkPass = (userName, pass)=>{
-    let quantity=0
+
+    let valid=false
     MongoClient.connect(url, function(err, db) {
-        const users = db.collection('user')
-        const found = users.find({nick: userName, pass})
-        quantity = found.count()
+        db.collection('User').findOne({"nick":userName}).then((found)=>{
+            if(found!==null && found.pass==pass)
+            valid = true
+        })
+        
+        db.close();
+        
     });
-    
-    return quantity=0? false:true;
+    console.log('valid pass for  '+ userName+'? '+ valid)
+    //return valid
+    return false
 }
 
 const checkToken = (user, token)=>{
     let quantity=0
     MongoClient.connect(url, function(err, db) {
-        const users = db.collection('user')
+        const users = db.collection('User')
         const found = users.find({nick: user, token})
         quantity = found.count()
+        console.log("check user "+userName+" token "+token+", found "+quantity)
+        console.log(found)
+        console.log('err')
+        console.log(err)
     });
     
     return quantity=0? false:true;
@@ -62,7 +58,7 @@ const addUser = (nick, pass, email, currentDate, token)=>{
     //create user
     
     MongoClient.connect(url, function(err, db) {
-        db.collection('user').insert({"nick": nick, "pass": pass,"token": {}, "email" : email, "characters": [],"started": currentDate ,"login": currentDate, "friendList": []})
+        db.collection('User').insert({"nick": nick, "pass": pass,"token": {}, "email" : email, "characters": [],"started": currentDate ,"login": currentDate, "friendList": []})
         
     });
     
@@ -73,7 +69,8 @@ const getFullUser = (user)=>{
     let userFound=0
     //TODO why userFound is 0??
     MongoClient.connect(url, function(err, db) {
-        userFound = db.collection('user').find({nick: user})
+        console.log(db)
+        userFound = db.collection('User').find({nick: user})
     });
     
     return userFound

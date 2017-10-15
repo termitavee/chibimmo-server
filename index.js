@@ -4,6 +4,8 @@ const http = require('http')
 const bodyParser = require('body-parser');
 const crypto = require("crypto");
 //const https = require('https')
+const MongoClient = require('mongodb').MongoClient
+const url = 'mongodb://localhost:27017/chibimmo';
 
 const {fileLog, parseBody} = require('./public/utils');
 const {checkUser,checkPass,checkToken,addUser, getFullUser, updateToken} = require('./public/db/db')
@@ -46,7 +48,8 @@ app.get('/', function(req, res){
 app.post('/login', function(req, res){
 	
 	const {user, pass, token=null, remember=false, device=null} = parseBody(req.body)
-	/**remembered user */
+
+	/*
 	if(token!=null && checkToken(user, device, token)){		
 		
 		const token = crypto.randomBytes(10).toString('hex');
@@ -55,20 +58,27 @@ app.post('/login', function(req, res){
 		res.send({status: "success", user: getFullUser(user)})
 		
 	}
+	*/
+    MongoClient.connect(url, function(err, db) {
+        db.collection('User').findOne({"nick":user}).then((found)=>{
+            console.log('found')
+			console.log(found)
+			//TODO check token 
 
-	if(checkUser(user)){
-		if(checkPass(user,pass)){
-			if(remember){
-				const token = crypto.randomBytes(10).toString('hex');
-				console.log("token="+token)
-				updateToken(user,device, token)
+            if(found!==null){
+				if(found.pass==pass){
+					//TODO update user last login
+					res.send({status: "success", user: found})
+				}else{
+					res.send({status: "fairule", error: "password"})	
+				}
+			}else{
+				res.send({status: "fairule", error: "user"})
 			}
-			//TODO update user last login
-			res.send({status: "success", user: getFullUser(user)})
-		}else
-		res.send({status: "fairule", error: "password"})		
-	}else
-	res.send({status: "fairule", error: "user"})
+
+        })
+        
+    });
 	
 });
 
