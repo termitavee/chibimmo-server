@@ -33,6 +33,7 @@ const ioChat = socketio(server,{
 
 //TODO definir variables globales necesarias
 
+//res.send({action:"signup",status: "401", data: "bad header"})
 //definir ruta por defecto
 app.use(express.static("public"));
 app.use(bodyParser.urlencoded({ extended: false })); 
@@ -68,12 +69,12 @@ app.post('/login', function(req, res){
             if(found!==null){
 				if(found.pass==pass){
 					//TODO update user last login
-					res.send({status: "success", user: found})
+					res.send({action:"login",status: "202", user: found})
 				}else{
-					res.send({status: "fairule", error: "password"})	
+					res.send({action:"login",status: "401", error: "password"})	
 				}
 			}else{
-				res.send({status: "fairule", error: "user"})
+				res.send({action:"login",status: "401", error: "user"})
 			}
 
         })
@@ -87,7 +88,7 @@ app.post('/signup', function(req, res){
 	try{
 		const {user, pass, email} = parseBody(req.body)
 		console.log("user " +user+ " pass "+pass+ " email "+email)
-		
+		//TODO modificar como en login
 		//comprobar si existe usuario
 		console.log('check user')
 		if(checkUser(user)){
@@ -118,17 +119,17 @@ app.post('/signup', function(req, res){
 		//si no ha fallado nada se manda los datos insertados
 		const userData = getFullUser(user)
 		console.log(userData)
-		res.send({status: "success", user: userData})
+		res.send({action:"signup",status: "202", user: userData})
 		
 		//TODO enviar verificación por email
 	}catch(e){
 		console.log(e.message)
-		res.send({message: 'navegador?'})
+		res.send({action:"signup",status: "401", error: "bad header"})
 	}
 	
 });
 
-app.get('/create', function(req, res){
+app.post('/create', function(req, res){
 	//crear personaje
 	
 });
