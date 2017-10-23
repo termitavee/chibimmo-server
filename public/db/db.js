@@ -2,78 +2,16 @@
 const database = null;
 const MongoClient = require('mongodb').MongoClient
 const url = 'mongodb://localhost:27017/chibimmo';
+const {soldier, mage, rogue} = require('./characterStats');
+
 
 //insert, remove, rename, save, update, distinct, count, drop, findAndModify, findAndRemove, find, findOne, stats
 //LogIn action
-const checkUser = (userName)=>{
-
-    MongoClient.connect(url, function(err, db) {
-        db.collection('User').findOne({"nick":userName}).then((found)=>{
-            console.log('found')
-            console.log(found)
-            if(found!==null)
-            return true
-            return false
-        })
-        
-    });
-
-
-}
-
-const checkPass = (userName, pass)=>{
-
-    let valid=false
-    MongoClient.connect(url, function(err, db) {
-        db.collection('User').findOne({"nick":userName}).then((found)=>{
-            if(found!==null && found.pass==pass)
-            valid = true
-        })
-        
-        db.close();
-        
-    });
-    console.log('valid pass for  '+ userName+'? '+ valid)
-    //return valid
-    return false
-}
-
-const checkToken = (user, token)=>{
-    let quantity=0
-    MongoClient.connect(url, function(err, db) {
-        const users = db.collection('User')
-        const found = users.find({nick: user, token})
-        quantity = found.count()
-        console.log("check user "+userName+" token "+token+", found "+quantity)
-        console.log(found)
-        console.log('err')
-        console.log(err)
-    });
-    
-    return quantity=0? false:true;
-}
 
 //user-related queries
 const addUser = (nick, pass, email, currentDate, token)=>{
-    //create user
-    
-    MongoClient.connect(url, function(err, db) {
-        db.collection('User').insert({"nick": nick, "pass": pass,"token": {}, "email" : email, "characters": [],"started": currentDate ,"login": currentDate, "friendList": []})
-        
-    });
-    
-}
 
-const getFullUser = (user)=>{
-    //get all user 
-    let userFound=0
-    //TODO why userFound is 0??
-    MongoClient.connect(url, function(err, db) {
-        console.log(db)
-        userFound = db.collection('User').find({nick: user})
-    });
     
-    return userFound
 }
 
 const updateToken = (user, device, token)=>{
@@ -88,13 +26,13 @@ const deleteUser = ()=>{
     
 }
 //character-related queries
-const AddCharacter = ()=>{
-    
+const AddCharacter = (UserID,name, type,orientation,hair,color)=>{
+    //def equip
+    //def stats
+
+
 }
 
-const getCharacter = ()=>{
-    
-}
 
 const editCharacter = ()=>{
     
@@ -104,7 +42,8 @@ const deleteCharacter = ()=>{
     
 }
 
-module.exports = {checkUser,checkPass,checkToken,addUser, getFullUser, updateToken}
+
+module.exports = {AddCharacter}
 
 //modelos
 
@@ -117,13 +56,14 @@ class User{
         this.characters = characters;//array
         this.login = login;//date
         this.friendList = friendList
+        this.archivements = archivements//[]
     }
     
 }
 
 class Character{
-    constructor(Usernick,name, type, qualities, statistics, equipment, inventory, pets, login) {
-        this.Usernick = Usernick; //string
+    constructor(User,name, type, qualities, stadistics, equipment, inventory, pets, login) {
+        this.User = User; //string
         this.name = name;//string
         this.type = type;//string soldier/mage/rogue
         this.qualities = qualities;
@@ -132,7 +72,7 @@ class Character{
             hair
             hair color
         }*/
-        this.statistics = statistics;
+        this.stadistics = stadistics;
         /*{
             variable
             life
@@ -159,7 +99,6 @@ class Character{
         }*/
         this.inventory = inventory;//[]
         this.pets = pets//objet or []
-        this.archivements = archivements//[]
         this.login = login;//date
     }
 }

@@ -8,7 +8,8 @@ const MongoClient = require('mongodb').MongoClient
 const url = 'mongodb://localhost:27017/chibimmo';
 
 const {fileLog, parseBody} = require('./public/utils');
-const {checkUser,checkPass,checkToken,addUser, getFullUser, updateToken} = require('./public/db/db')
+const {} = require('./public/db/db')
+const classStats = require('./public/db/characterStats')
 
 const PORT = 3000
 const app = express()
@@ -49,7 +50,7 @@ app.get('/', function(req, res){
 app.post('/login', function(req, res){
 	
 	const {user, pass, token=null, remember=false, device=null} = parseBody(req.body)
-
+	
 	/*
 	if(token!=null && checkToken(user, device, token)){		
 		
@@ -60,13 +61,13 @@ app.post('/login', function(req, res){
 		
 	}
 	*/
-    MongoClient.connect(url, function(err, db) {
-        db.collection('User').findOne({"nick":user}).then((found)=>{
-            console.log('found')
+	MongoClient.connect(url, function(err, db) {
+		db.collection('User').findOne({"nick":user}).then((found)=>{
+			console.log('found')
 			console.log(found)
 			//TODO check token 
-
-            if(found!==null){
+			
+			if(found!==null){
 				if(found.pass==pass){
 					//TODO update user last login
 					res.send({action:"login",status: "202", user: found})
@@ -76,10 +77,10 @@ app.post('/login', function(req, res){
 			}else{
 				res.send({action:"login",status: "401", error: "user"})
 			}
-
-        })
-        
-    });
+			
+		})
+		
+	});
 	
 });
 
@@ -131,6 +132,38 @@ app.post('/signup', function(req, res){
 
 app.post('/create', function(req, res){
 	//crear personaje
+	const {user, name, className=null, orientation=false, hair=null, color} = parseBody(req.body)
+	let userID = 0
+	
+	if(name.length<4){
+		//TODO error too short
+		console.log('name short')
+		res.send({action:"create",status: "401", error: "name"})
+	}
+	
+	MongoClient.connect(url, function(err, db) {
+		db.collection('Character').find({"name":name }).then((found)=>{
+			console.log('found')
+			console.log(found)
+			
+			if(found!==null)
+			res.send({action:"create",status: "create", error: 'exist'})
+			
+			db.collection('User').findOne({"nick":user}).then((found)=>{
+				
+				if(found!==null){
+					//{user, name, className="sol", orientation=n, hair=null, color}
+					const stadistics = (classStats[className])[orientation]
+					cosnole.log(stadistics)
+					db.collection('Character').insert({"userID": found._id, "name": name,"type": className, "stadistics" : stadistics,"started": currentDate ,"equipment": currentDate, "inventory": [],"pets": [],"login": []})
+				}
+				
+			})
+			
+		})
+		db.close()
+		
+	});
 	
 });
 
