@@ -62,7 +62,7 @@ app.post('/login', function(req, res){
 	}
 	*/
 	MongoClient.connect(url, function(err, db) {
-		db.collection('User').findOne({"nick":user}).then((found)=>{
+		db.collection('User').findOne({"_id":user}).then((found)=>{
 			console.log('found')
 			console.log(found)
 			//TODO check token 
@@ -87,44 +87,63 @@ app.post('/login', function(req, res){
 app.post('/signup', function(req, res){
 	//crear usuario
 	try{
-		const {user, pass, email} = parseBody(req.body)
-		console.log("user " +user+ " pass "+pass+ " email "+email)
+		const { user, pass, email } = parseBody(req.body)
+		console.log("user " + user + " pass " + pass + " email " + email)
 		//TODO modificar como en login
 		//comprobar si existe usuario
-		console.log('check user')
-		if(checkUser(user)){
-			console.log('User already exists')
-			res.send({status: "fairule", error: "user"})
-		}
-		console.log('User is available')
-		
-		//comprobar si existe email
+
+		//comprobar si el email es válido
 		console.log('check mail')
 		const emailPatt = /[A-Z0-9._%+-]+@[A-Z0-9.-]+.[A-Z]{2,4}/i;
-		if(!emailPatt.test(email)){
+		if (!emailPatt.test(email)) {
 			console.log('email not valid')
-			res.send({status: "fairule", error: "email"})
+			res.send({ action: "login", status: "401", error: "email" })
 		}
 		console.log('email ok')
+
+
+		console.log('check user')
+
+		MongoClient.connect(url, function (err, db) {
+			let users = db.collection('User').insert({
+				"_id": user,
+				"pass": pass,
+				"token": {},
+				"email": email,
+				"characters": [],
+				"started": new Date(),
+				"login": 0,
+				"friendList": []
+			}, (err, result) => {
+				console.log('finished')
+				console.log('err')
+				console.log(err)
+				/*
+				name: 'MongoError',
+				message: 'E11000 duplicate key error collection: chibimmo.User index: _id_ dup key: { : "root" }',
+				driver: true,
+				code: 11000,
+				index: 0,
+				errmsg: 'E11000 duplicate key error collection: chibimmo.User index: _id_ dup key: { : "root" }',
+				getOperation: [Function],
+				toJSON: [Function],
+				toString: [Function] }
+				*/
+				console.log('result')
+				console.log(result)
+				const userData = db.collection('User').findOne({ "nick": user })
+				console.log(userData)
+
+				res.send({ action: "signup", status: "401", user: userData })
+			})
+
+		})		
 		
-		//si no se inserta correctamente
-		if(!addUser(user, pass, email, new Date())){
-			
-			console.log('not inserted properly becouse unknown reason')
-			res.send({status: "fairule", error: "unknown"})
-		}
 		
-		console.log('inserted properly')
-		
-		
-		//si no ha fallado nada se manda los datos insertados
-		const userData = getFullUser(user)
-		console.log(userData)
-		res.send({action:"signup",status: "202", user: userData})
 		
 		//TODO enviar verificación por email
 	}catch(e){
-		console.log(e.message)
+		console.log("Error: "+e.message)
 		res.send({action:"signup",status: "401", error: "bad header"})
 	}
 	
