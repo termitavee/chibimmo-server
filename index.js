@@ -29,7 +29,6 @@ const ioChat = socketio(server, {
 //TODO comprobar extructura en la web de socket.io
 //TODO usar raiz y otras rutas para login y otras funciones en app
 
-
 //io.listen(app.listen(process.env.PORT || 1337));
 
 //TODO definir variables globales necesarias
@@ -52,7 +51,16 @@ app.post('/login', function (req, res) {
 
 
 	const { user, pass, token = null, remember = false, device = null } = parseBody(req.body)
-
+	console.log('user')
+	console.log(user)
+	console.log('pass')
+	console.log(pass)
+	console.log('token')
+	console.log(token)
+	console.log('remember')
+	console.log(remember)
+	console.log('device')
+	console.log(device)
 	/*
 	if(token!=null && checkToken(user, device, token)){		
 		
@@ -72,7 +80,18 @@ app.post('/login', function (req, res) {
 			if (found !== null) {
 				if (found.pass == pass) {
 					//TODO update user last login
-					res.send({ action: "login", status: "202", user: found })
+					db.collection('Character').find({ "userID": user }, (err, characters) => {
+
+						characters.toArray().then((characters) => {
+							console.log('characters')
+							console.log(characters)
+							found.characters = characters
+							console.log('found')
+							console.log(found)
+							res.send({ action: "login", status: "202", user: found })
+						})
+						
+					})
 				} else {
 					res.send({ action: "login", status: "401", error: "password" })
 				}
@@ -99,20 +118,21 @@ app.post('/signup', function (req, res) {
 		const emailPatt = /[A-Z0-9._%+-]+@[A-Z0-9.-]+.[A-Z]{2,4}/i;
 		if (!emailPatt.test(email)) {
 			console.log('email not valid')
-			res.send({ action: "login", status: "401", error: "email" })
+			res.send({ action: "signup", status: "401", error: "email" })
 		}
-		console.log('email ok')
-
 
 		console.log('check user')
 
 		MongoClient.connect(url, function (err, db) {
+			console.log('err')
+			console.log(err)
+
+
 			let users = db.collection('User').insert({
 				"_id": user,
 				"pass": pass,
 				"token": {},
 				"email": email,
-				"characters": [],
 				"started": new Date(),
 				"login": 0,
 				"friendList": []
@@ -120,28 +140,17 @@ app.post('/signup', function (req, res) {
 				console.log('finished')
 				console.log('err')
 				console.log(err)
-				/*
-				name: 'MongoError',
-				message: 'E11000 duplicate key error collection: chibimmo.User index: _id_ dup key: { : "root" }',
-				driver: true,
-				code: 11000,
-				index: 0,
-				errmsg: 'E11000 duplicate key error collection: chibimmo.User index: _id_ dup key: { : "root" }',
-				getOperation: [Function],
-				toJSON: [Function],
-				toString: [Function] }
-				*/
-				console.log('result')
-				console.log(result)
-				const userData = db.collection('User').findOne({ "nick": user })
-				console.log(userData)
+				if (err == null) {
+					res.send({ action: "signup", status: "202" })
+				} else {
+					if (err.message.includes("E11000"))
+						res.send({ action: "signup", status: "401", error: 'User exist' })
+					else
+						res.send({ action: "signup", status: "500", error: 'internal error' })
+				}
 
-				res.send({ action: "signup", status: "202", user: userData })
 			})
-
 		})
-
-
 
 		//TODO enviar verificación por email
 	} catch (e) {
@@ -164,7 +173,7 @@ app.get('/user/:name', function (req, res) {
 				console.log('characterList')
 				console.log(characterList)
 				founded.characters = characterList
-				res.send({ action: "user", status: "202", found: founded})
+				res.send({ action: "user", status: "202", found: founded })
 			})
 		}
 		else
@@ -175,12 +184,14 @@ app.get('/user/:name', function (req, res) {
 
 app.post('/create', function (req, res) {
 	//crear personaje
-	const { user, name, className = null, orientation = false, hair = null, color } = parseBody(req.body)
+	console.log('create character')
+	const { user, name, className = null, orientation = false, hair = null, hairColor, bodyColor } = parseBody(req.body)
 	console.log(user)
 	console.log(name)
 	console.log(className)
 	console.log(hair)
-	console.log(color)
+	console.log(hairColor)
+	console.log(bodyColor)
 	let userID = 0
 
 	if (name.length < 4) {
@@ -196,22 +207,32 @@ app.post('/create', function (req, res) {
 
 			if (found !== null)
 				res.send({ action: "create", status: "401", error: 'exist' })
+			console.log('is null')
 
-			db.collection('User').findOne({ "nick": user }).then((found) => {
+			db.collection('User').findOne({ "_id": user })
+				.then((userFound) => {
+					console.log('userFound')
+					console.log(userFound)
+					if (userFound !== null) {
+						//{user, name, className="sol", orientation=n, hair=null, color}
+						const stadistics = (classStats[className])[orientation]
+						console.log('stadistics')
+						console.log(stadistics)
+						//TODO pets and inventory is referenced from themselves
+						db.collection('Character').insert({ "userID": user, "_id": name, "type": className, "stadistics": stadistics, "started": new Date(), "equipment": '' })
+						res.send({ action: "create", status: "202", error: '' })
 
-				if (found !== null) {
-					//{user, name, className="sol", orientation=n, hair=null, color}
-					const stadistics = (classStats[className])[orientation]
-					cosnole.log(stadistics)
-					db.collection('Character').insert({ "userID": user, "_id": name, "type": className, "stadistics": stadistics, "started": currentDate, "equipment": currentDate, "inventory": [], "pets": [], "login": [] })
-					res.send({ action: "create", status: "202", error: '' })
+					} else {
+						console.log('user is null')
+						res.send({ action: "create", status: "401", error: 'unknow user' })
+					}
 
-				}
-
-			})
-
+				})
+				.catch((err) => {
+					console.log(err)
+				})
 		})
-		db.close()
+
 
 	})
 
@@ -237,7 +258,6 @@ app.get('/enter', function (req, res) {
 			res.send({ action: "enter", status: "202", error: '' })
 		else
 			res.send({ action: "enter", status: "401", error: 'Not found' })
-
 	})
 })
 

@@ -4,10 +4,10 @@
   "description": "Serverside work for this mmo",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "pm2 start index.js",
     "db": "sudo service mongod start",
     "dev": "nodemon index.js",
-    "production": "pm2 index.js",
+    "stop": "pm2 kill",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "termitavee", 
