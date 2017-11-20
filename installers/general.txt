@@ -1,0 +1,10 @@
+[ES]Requiere Nodejs y MongoDB
+
+descargar servidor de  https://github.com/termitavee/chibimmo-server
+instalar dependencias
+correr servidor
+
+[EN]Require NodeJS and MongoDB
+Download from https://github.com/termitavee/chibimmo-server
+install packages dependencies
+run server 
