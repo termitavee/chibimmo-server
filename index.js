@@ -15,26 +15,14 @@ const PORT = 3000
 const app = express()
 const server = http.Server(app)
 
-const ioGame = socketio(server, {
-	path: '/game',
-	serveClient: true,
-}).listen(server);
-
+const io = socketio(server);
+const ioChat = io.of('/chat');
+const ioGame = io.of('/game');
 //TODO implement namespaces for private chat
-const ioChat = socketio(server, {
-	path: '/chat',
-	serveClient: true,
-}).listen(server);
 
-//TODO comprobar extructura en la web de socket.io
+
 //TODO usar raiz y otras rutas para login y otras funciones en app
 
-//io.listen(app.listen(process.env.PORT || 1337));
-
-//TODO definir variables globales necesarias
-
-//res.send({action:"signup",status: "401", data: "bad header"})
-//definir ruta por defecto
 app.use(express.static("public"));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
@@ -90,7 +78,7 @@ app.post('/login', function (req, res) {
 							console.log(found)
 							res.send({ action: "login", status: "202", user: found })
 						})
-						
+
 					})
 				} else {
 					res.send({ action: "login", status: "401", error: "password" })
@@ -261,22 +249,38 @@ app.get('/enter', function (req, res) {
 	})
 })
 
-ioGame.on('connection', function (cocket) {
+//io.on('connection', function (socket) {console.log("default connection")})
+//TODO toda la mecanica de cominicación del juego
+
+ioGame.on('connection', function (socket) {
 
 	console.log("ioGame connection")
 
-	socket.on('mensaje', function (mensaje) {
-		console.log('nuevo mensaje de "' + socket.username + '": "' + mensaje + '"');
+	socket.on('message', function (message) {
+		console.log('nuevo mensaje de "' + socket.username + '": "' + message.content + '"');
 		//io.emit('chat', mensaje);
-		socket.broadcast.emit('mensaje', { "mensaje": socket.username + " ha dicho: " + mensaje });
+		socket.broadcast.emit('message', { "mensaje": socket.username + " ha dicho: " + message });
 	});
 
-	//toda la mecanica de comunicación del juego
+	//TODO toda la mecanica de comunicación del chat
 
 })
 
-ioChat.on('connection', function (cocket) {
+ioChat.on('connection', function (socket) {
 	console.log("iochat connection")
+
+	socket.on('setUser', function (userName) {
+		console.log(userName)
+		socket.userName = userName
+		socket.broadcast.emit('mensaje', userName + " joined.");
+	})
+
+	socket.on('message', function (message) {
+		console.log('nuevo mensaje de "' + socket.userName + '": "' + message + '"');
+		//io.emit('chat', mensaje);
+		if (socket.userName != null)
+			socket.broadcast.emit('mensaje', socket.userName + ": " + message);
+	});
 
 })
 
