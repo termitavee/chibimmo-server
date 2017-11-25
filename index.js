@@ -181,7 +181,10 @@ app.post('/create', function (req, res) {
 	console.log(hairColor)
 	console.log(bodyColor)
 	let userID = 0
-
+/*TODO
+add map id
+add coordenates
+*/
 	if (name.length < 4) {
 		//TODO error too short
 		console.log('name short')

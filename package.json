@@ -4,7 +4,7 @@
   "description": "Serverside work for this mmo",
   "main": "index.js",
   "scripts": {
-    "start": "pm2 start index.js",
+    "start": "pm2 start index.js -i max",
     "log": "pm2 log",
     "db": "sudo service mongod start",
     "dev": "nodemon index.js",
