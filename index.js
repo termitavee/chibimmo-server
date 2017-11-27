@@ -19,7 +19,7 @@ const io = socketio(server);
 const ioChat = io.of('/chat');
 const ioGame = io.of('/game');
 //TODO implement namespaces for private chat
-
+//TODO porbar sockets con -i max
 
 //TODO usar raiz y otras rutas para login y otras funciones en app
 
