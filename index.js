@@ -59,37 +59,43 @@ app.post('/login', function (req, res) {
 		
 	}
 	*/
-	MongoClient.connect(url, function (err, db) {
-		db.collection('User').findOne({ "_id": user }).then((found) => {
-			console.log('found')
-			console.log(found)
-			//TODO check token 
+	try {
 
-			if (found !== null) {
-				if (found.pass == pass) {
-					//TODO update user last login
-					db.collection('Character').find({ "userID": user }, (err, characters) => {
+		MongoClient.connect(url, function (err, db) {
 
-						characters.toArray().then((characters) => {
-							console.log('characters')
-							console.log(characters)
-							found.characters = characters
-							console.log('found')
-							console.log(found)
-							res.send({ action: "login", status: "202", user: found })
+			db.collection('User').findOne({ "_id": user }).then((found) => {
+				console.log('found')
+				console.log(found)
+				//TODO check token 
+
+				if (found !== null) {
+					if (found.pass == pass) {
+						//TODO update user last login
+						db.collection('Character').find({ "userID": user }, (err, characters) => {
+
+							characters.toArray().then((characters) => {
+								console.log('characters')
+								console.log(characters)
+								found.characters = characters
+								console.log('found')
+								console.log(found)
+								res.send({ action: "login", status: "202", user: found })
+							})
+
 						})
-
-					})
+					} else {
+						res.send({ action: "login", status: "401", error: "password" })
+					}
 				} else {
-					res.send({ action: "login", status: "401", error: "password" })
+					res.send({ action: "login", status: "401", error: "user" })
 				}
-			} else {
-				res.send({ action: "login", status: "401", error: "user" })
-			}
 
-		})
+			})
 
-	});
+		});
+	} catch (ex) {
+		res.send({ action: "login", status: "500", error: "db" })
+	}
 
 })
 
@@ -210,7 +216,7 @@ add coordenates
 						console.log('stadistics')
 						console.log(stadistics)
 						//TODO pets and inventory is referenced from themselves
-						db.collection('Character').insert({ "userID": user, "_id": name, "type": className, "stadistics": stadistics, "started": new Date(), "equipment": '' })
+						db.collection('Character').insert({ "userID": user, "_id": name, "type": className, "stadistics": stadistics, map: 1, position: {x:100,y:100},"started": new Date(), "equipment": '' })
 						res.send({ action: "create", status: "202", error: '' })
 
 					} else {
