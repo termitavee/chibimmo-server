@@ -18,6 +18,8 @@ const server = http.Server(app)
 const io = socketio(server);
 const ioChat = io.of('/chat');
 const ioGame = io.of('/game');
+var chatList = []
+var gameList = []
 //TODO implement namespaces for private chat
 //TODO porbar sockets con -i max
 
@@ -277,6 +279,9 @@ ioGame.on('connection', function (socket) {
 
 ioChat.on('connection', function (socket) {
 	console.log("iochat connection")
+	console.log(socket)
+	chatList.push(socket)
+	console.log(chatList)
 
 	socket.on('setUser', function (userName) {
 		console.log(userName)
