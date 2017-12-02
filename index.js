@@ -178,21 +178,27 @@ app.get('/user/:name', function (req, res) {
 
 })
 
+//TODO new pet and update inventory
+// db.collection('Pet').insert({})
+// db.collection('Inventory').insert({})
+
+app.get('/pets/:name', function (req, res) { })
+
+app.get('/inventory/:name', function (req, res) { })
+
 app.post('/create', function (req, res) {
 	//crear personaje
 	console.log('create character')
 	const { user, name, className = null, orientation = false, hair = null, hairColor, bodyColor } = parseBody(req.body)
 	console.log(user)
 	console.log(name)
-	console.log(className)
+	console.log(className)// [soldier, mage, rogue]
+	console.log(orientation)//[ofensive, defensive, neutral]
 	console.log(hair)
 	console.log(hairColor)
 	console.log(bodyColor)
 	let userID = 0
-/*TODO
-add map id
-add coordenates
-*/
+
 	if (name.length < 4) {
 		//TODO error too short
 		console.log('name short')
@@ -201,8 +207,6 @@ add coordenates
 
 	MongoClient.connect(url, function (err, db) {
 		db.collection('Character').findOne({ "_id": name }).then((found) => {
-			console.log('found')
-			console.log(found)
 
 			if (found !== null)
 				res.send({ action: "create", status: "401", error: 'exist' })
@@ -210,15 +214,15 @@ add coordenates
 
 			db.collection('User').findOne({ "_id": user })
 				.then((userFound) => {
-					console.log('userFound')
-					console.log(userFound)
+
 					if (userFound !== null) {
-						//{user, name, className="sol", orientation=n, hair=null, color}
+						//Ceate default stats depending of the class and orientation
+						//see './public/db/characterStats'
 						const stadistics = (classStats[className])[orientation]
-						console.log('stadistics')
-						console.log(stadistics)
-						//TODO pets and inventory is referenced from themselves
-						db.collection('Character').insert({ "userID": user, "_id": name, "type": className, "stadistics": stadistics, map: 1, position: {x:100,y:100},"started": new Date(), "equipment": '' })
+
+						//pets and inventory is referenced from themselves because of the variable size
+						db.collection('Character').insert({ "userID": user, "_id": name, "type": className, 'orientation': orientation, "stadistics": stadistics, map: 1, position: { x: 100, y: 100 }, "started": new Date(), "equipment": '', achievements: [] })
+						db.collection('inventory').insert({ "_ID": name, items: [] })
 						res.send({ action: "create", status: "202", error: '' })
 
 					} else {
@@ -227,8 +231,9 @@ add coordenates
 					}
 
 				})
-				.catch((err) => {
+				.catch((error) => {
 					console.log(err)
+					res.send({ action: "create", status: "500", error })
 				})
 		})
 
@@ -236,16 +241,26 @@ add coordenates
 	})
 
 })
-
-app.get('/delete', function (req, res) {
+//TODO add/remove item in invenstory - get array, check item, add/update or remove
+app.post('/deletecharacter', function (req, res) {
 	//borrar personaje
+	console.log('delete user')
 	const { user, name } = parseBody(req.body)
-	db.collection('Character').remove({ "userID": user, "_id": name }).then((found) => {
-		console.log('found')
-		console.log(found)
-		res.send({ action: "delete", status: "202", error: '' })
+	console.log(user)
+	console.log(name)
+	if(name)
+	MongoClient.connect(url, function (err, db) {
+		db.collection('Character').remove({ "userID": user, "_id": name }).then((err, found) => {
+			console.log('err')
+			console.log(err)
+			console.log('found')
+			console.log(found)
+			res.send({ action: "delete", status: "202", character: name })
 
-	})
+		})
+		})	
+	else
+		res.send('http://127.0.0.1:3000/remove')	
 })
 
 app.get('/enter', function (req, res) {
@@ -266,7 +281,7 @@ app.get('/enter', function (req, res) {
 ioGame.on('connection', function (socket) {
 
 	console.log("ioGame connection")
-
+	//TODO create new pet and update inventory here
 	socket.on('message', function (message) {
 		console.log('nuevo mensaje de "' + socket.username + '": "' + message.content + '"');
 		//io.emit('chat', mensaje);
