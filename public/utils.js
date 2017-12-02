@@ -14,4 +14,9 @@ parseBody = function(text){
     return JSON.parse(Object.keys(text)[0])
 }
 
-module.exports = {fileLog, parseBody}
+printIP = (port) =>{
+    var ips = require('child_process').execSync("ifconfig | grep inet | grep -v inet6 | awk '{gsub(/addr:/,\"\");print $2}'").toString().trim().split("\n")
+    return `${ips[0]}:${port || ""} `
+}
+
+module.exports = { fileLog, parseBody, printIP}

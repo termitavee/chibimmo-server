@@ -7,7 +7,7 @@ const crypto = require("crypto");
 const MongoClient = require('mongodb').MongoClient
 const url = 'mongodb://localhost:27017/chibimmo';
 
-const { fileLog, parseBody } = require('./public/utils');
+const { fileLog, parseBody, printIP } = require('./public/utils');
 const { } = require('./public/db/db')
 const classStats = require('./public/db/characterStats')
 
@@ -248,7 +248,7 @@ app.post('/deletecharacter', function (req, res) {
 	const { user, name } = parseBody(req.body)
 	console.log(user)
 	console.log(name)
-	if(name)
+
 	MongoClient.connect(url, function (err, db) {
 		db.collection('Character').remove({ "userID": user, "_id": name }).then((err, found) => {
 			console.log('err')
@@ -258,9 +258,8 @@ app.post('/deletecharacter', function (req, res) {
 			res.send({ action: "delete", status: "202", character: name })
 
 		})
-		})	
-	else
-		res.send('http://127.0.0.1:3000/remove')	
+	})
+
 })
 
 app.get('/enter', function (req, res) {
@@ -313,5 +312,7 @@ ioChat.on('connection', function (socket) {
 
 })
 
-server.listen(PORT);
-console.log('Server suposely running on port ' + PORT)
+server.listen(PORT, () => {
+	console.log("Server running on local ip "+printIP(PORT))
+
+});
