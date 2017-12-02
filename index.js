@@ -190,8 +190,8 @@ app.post('/create', function (req, res) {
 	//crear personaje
 	console.log('create character')
 	const { user, name, className = null, orientation = false, hair = null, hairColor, bodyColor } = parseBody(req.body)
-	console.log(user)
-	console.log(name)
+	console.log(user)//root
+	console.log(name)//reddo
 	console.log(className)// [soldier, mage, rogue]
 	console.log(orientation)//[ofensive, defensive, neutral]
 	console.log(hair)
@@ -210,30 +210,32 @@ app.post('/create', function (req, res) {
 
 			if (found !== null)
 				res.send({ action: "create", status: "401", error: 'exist' })
-			console.log('is null')
+			console.log('character is null, its ok to save it')
 
-			db.collection('User').findOne({ "_id": user })
-				.then((userFound) => {
-
+			db.collection('User').findOne({ "_id": user }).then((userFound) => {
+				console.log('userFound')
+				console.log(userFound)
 					if (userFound !== null) {
 						//Ceate default stats depending of the class and orientation
 						//see './public/db/characterStats'
 						const stadistics = (classStats[className])[orientation]
-
+						console.log(stadistics)
 						//pets and inventory is referenced from themselves because of the variable size
 						db.collection('Character').insert({ "userID": user, "_id": name, "type": className, 'orientation': orientation, "stadistics": stadistics, map: 1, position: { x: 100, y: 100 }, "started": new Date(), "equipment": '', achievements: [] })
-						db.collection('inventory').insert({ "_ID": name, items: [] })
+						console.log('inserted character ' + name)
+						//db.collection('inventory').insert({ "_ID": name, items: [] })
 						res.send({ action: "create", status: "202", error: '' })
 
 					} else {
-						console.log('user is null')
+						console.log('user not found')
 						res.send({ action: "create", status: "401", error: 'unknow user' })
 					}
 
 				})
 				.catch((error) => {
-					console.log(err)
-					res.send({ action: "create", status: "500", error })
+					console.log('some error')
+					console.log(error)
+					res.send({ action: "create", status: "500", error: error })
 				})
 		})
 
@@ -314,5 +316,4 @@ ioChat.on('connection', function (socket) {
 
 server.listen(PORT, () => {
 	console.log("Server running on local ip "+printIP(PORT))
-
 });

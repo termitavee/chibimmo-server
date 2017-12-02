@@ -1,6 +1,14 @@
+/**
+ * primera linea son las clases 
+ * [soldier = 0, mage = 1, rogue = 2]
+ * segunda linea es la orientacion 
+ * [ofensive = 0, defensive = 1, neutral = 2]
+ * 
+ */
+
 module.exports = {
-    sol:{
-        off:{
+    0:{
+        0:{
             variable: {
                 life:25,
                 magic: 5,
@@ -15,7 +23,7 @@ module.exports = {
                 cha:6
             }  
         },
-        def:{
+        1:{
             variable: {
                 life:25,
                 magic: 5,
@@ -30,7 +38,7 @@ module.exports = {
                 cha:5
             }  
         },
-        n:{
+        2:{
             variable: {
                 life:25,
                 magic: 5,
@@ -46,8 +54,8 @@ module.exports = {
             }  
         }
     },
-    mag:{
-        off:{
+    1:{
+        0:{
             variable: {
                 life:15,
                 magic: 20,
@@ -62,7 +70,7 @@ module.exports = {
                 cha:5
             }  
         },
-        def:{
+        1:{
             variable: {
                 life:15,
                 magic: 20,
@@ -77,7 +85,7 @@ module.exports = {
                 cha:5
             }  
         },
-        n:{
+        2:{
             variable: {
                 life:15,
                 magic: 20,
@@ -93,8 +101,8 @@ module.exports = {
             }  
         }
     },
-    rog:{
-        off:{
+    2:{
+        0:{
             variable: {
                 life:20,
                 magic: 5,
@@ -109,7 +117,7 @@ module.exports = {
                 cha:6
             }  
         },
-        def:{
+        1:{
             variable: {
                 life:20,
                 magic: 5,
@@ -124,7 +132,7 @@ module.exports = {
                 cha:7
             }  
         },
-        n:{
+        2:{
             variable: {
                 life:20,
                 magic: 5,
