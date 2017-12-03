@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "pm2 start index.js --name chibimmo",
+    "restart": "pm2 restart chibimmo",
     "log": "pm2 log",
     "db": "sudo service mongod start",
     "dev": "nodemon index.js",

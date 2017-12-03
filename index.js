@@ -16,6 +16,7 @@ const app = express()
 const server = http.Server(app)
 
 const io = socketio(server);
+//const io = socketio(server, { transports: ['websocket'] });
 const ioChat = io.of('/chat');
 const ioGame = io.of('/game');
 var chatList = []
@@ -41,16 +42,7 @@ app.post('/login', function (req, res) {
 
 
 	const { user, pass, token = null, remember = false, device = null } = parseBody(req.body)
-	console.log('user')
-	console.log(user)
-	console.log('pass')
-	console.log(pass)
-	console.log('token')
-	console.log(token)
-	console.log('remember')
-	console.log(remember)
-	console.log('device')
-	console.log(device)
+
 	/*
 	if(token!=null && checkToken(user, device, token)){		
 		
@@ -67,7 +59,6 @@ app.post('/login', function (req, res) {
 
 			db.collection('User').findOne({ "_id": user }).then((found) => {
 				console.log('found')
-				console.log(found)
 				//TODO check token 
 
 				if (found !== null) {
@@ -76,11 +67,9 @@ app.post('/login', function (req, res) {
 						db.collection('Character').find({ "userID": user }, (err, characters) => {
 
 							characters.toArray().then((characters) => {
-								console.log('characters')
-								console.log(characters)
+								//TODO find one
 								found.characters = characters
-								console.log('found')
-								console.log(found)
+
 								res.send({ action: "login", status: "202", user: found })
 							})
 
@@ -105,9 +94,6 @@ app.post('/signup', function (req, res) {
 	//crear usuario
 	try {
 		const { user, pass, email } = parseBody(req.body)
-		console.log("user " + user + " pass " + pass + " email " + email)
-		//TODO modificar como en login
-		//comprobar si existe usuario
 
 		//comprobar si el email es válido
 		console.log('check mail')
@@ -117,11 +103,7 @@ app.post('/signup', function (req, res) {
 			res.send({ action: "signup", status: "401", error: "email" })
 		}
 
-		console.log('check user')
-
 		MongoClient.connect(url, function (err, db) {
-			console.log('err')
-			console.log(err)
 
 
 			let users = db.collection('User').insert({
@@ -134,8 +116,7 @@ app.post('/signup', function (req, res) {
 				"friendList": []
 			}, (err, result) => {
 				console.log('finished')
-				console.log('err')
-				console.log(err)
+
 				if (err == null) {
 					res.send({ action: "signup", status: "202" })
 				} else {
@@ -190,13 +171,13 @@ app.post('/create', function (req, res) {
 	//crear personaje
 	console.log('create character')
 	const { user, name, className = null, orientation = false, hair = null, hairColor, bodyColor } = parseBody(req.body)
-	console.log(user)//root
+/* 	console.log(user)//root
 	console.log(name)//reddo
 	console.log(className)// [soldier, mage, rogue]
 	console.log(orientation)//[ofensive, defensive, neutral]
 	console.log(hair)
 	console.log(hairColor)
-	console.log(bodyColor)
+	console.log(bodyColor) */
 	let userID = 0
 
 	if (name.length < 4) {
@@ -210,30 +191,30 @@ app.post('/create', function (req, res) {
 
 			if (found !== null)
 				res.send({ action: "create", status: "401", error: 'exist' })
-			console.log('character is null, its ok to save it')
+
 
 			db.collection('User').findOne({ "_id": user }).then((userFound) => {
 				console.log('userFound')
-				console.log(userFound)
-					if (userFound !== null) {
-						//Ceate default stats depending of the class and orientation
-						//see './public/db/characterStats'
-						const stadistics = (classStats[className])[orientation]
-						console.log(stadistics)
-						//pets and inventory is referenced from themselves because of the variable size
-						db.collection('Character').insert({ "userID": user, "_id": name, "type": className, 'orientation': orientation, "stadistics": stadistics, map: 1, position: { x: 100, y: 100 }, "started": new Date(), "equipment": '', achievements: [] })
-						console.log('inserted character ' + name)
-						//db.collection('inventory').insert({ "_ID": name, items: [] })
-						res.send({ action: "create", status: "202", error: '' })
 
-					} else {
-						console.log('user not found')
-						res.send({ action: "create", status: "401", error: 'unknow user' })
-					}
+				if (userFound !== null) {
+					//Ceate default stats depending of the class and orientation
+					//see './public/db/characterStats'
+					const stadistics = (classStats[className])[orientation]
+					console.log(stadistics)
+					//TODO add hair body and color
+					//pets and inventory is referenced from themselves because of the variable size
+					db.collection('Character').insert({ "userID": user, "_id": name, "type": className, 'orientation': orientation, "stadistics": stadistics, map: 1, position: { x: 100, y: 100 }, "started": new Date(), "equipment": '', achievements: [] })
+					console.log('inserted character ' + name)
+					//db.collection('inventory').insert({ "_ID": name, items: [] })
+					res.send({ action: "create", status: "202", error: '' })
 
-				})
+				} else {
+					console.log('user not found')
+					res.send({ action: "create", status: "401", error: 'unknow user' })
+				}
+
+			})
 				.catch((error) => {
-					console.log('some error')
 					console.log(error)
 					res.send({ action: "create", status: "500", error: error })
 				})
@@ -248,15 +229,11 @@ app.post('/deletecharacter', function (req, res) {
 	//borrar personaje
 	console.log('delete user')
 	const { user, name } = parseBody(req.body)
-	console.log(user)
-	console.log(name)
+
 
 	MongoClient.connect(url, function (err, db) {
 		db.collection('Character').remove({ "userID": user, "_id": name }).then((err, found) => {
-			console.log('err')
-			console.log(err)
-			console.log('found')
-			console.log(found)
+
 			res.send({ action: "delete", status: "202", character: name })
 
 		})
@@ -284,7 +261,7 @@ ioGame.on('connection', function (socket) {
 	console.log("ioGame connection")
 	//TODO create new pet and update inventory here
 	socket.on('message', function (message) {
-		console.log('nuevo mensaje de "' + socket.username + '": "' + message.content + '"');
+		console.log('nuevo mensaje de "' + message.username + '": "' + message.content + '"');
 		//io.emit('chat', mensaje);
 		socket.broadcast.emit('message', { "mensaje": socket.username + " ha dicho: " + message });
 	});
@@ -295,8 +272,7 @@ ioGame.on('connection', function (socket) {
 
 ioChat.on('connection', function (socket) {
 	console.log("iochat connection")
-	console.log(socket)
-	chatList.push(socket)
+
 	console.log(chatList)
 
 	socket.on('setUser', function (userName) {
@@ -306,14 +282,17 @@ ioChat.on('connection', function (socket) {
 	})
 
 	socket.on('message', function (message) {
-		console.log('nuevo mensaje de "' + socket.userName + '": "' + message + '"');
+		console.log('nuevo mensaje de "' + message.user + '": "' + message.content + '"');
 		//io.emit('chat', mensaje);
-		if (socket.userName != null)
-			socket.broadcast.emit('mensaje', socket.userName + ": " + message);
+
+		socket.broadcast.emit('newMessage', message);
 	});
 
 })
 
 server.listen(PORT, () => {
-	console.log("Server running on local ip "+printIP(PORT))
+	console.log("Server running on local ip " + printIP(PORT))
+
+	const something = process.env.NODE_ENV
+	console.log(something)
 });
