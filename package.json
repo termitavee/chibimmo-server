@@ -8,7 +8,7 @@
     "restart": "pm2 restart chibimmo",
     "log": "pm2 log",
     "db": "sudo service mongod start",
-    "dev": "nodemon index.js",
+    "dev": "pm2 start index.js --name chibimmo --watch",
     "stop": "pm2 delete chibimmo",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

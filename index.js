@@ -292,7 +292,4 @@ ioChat.on('connection', function (socket) {
 
 server.listen(PORT, () => {
 	console.log("Server running on local ip " + printIP(PORT))
-
-	const something = process.env.NODE_ENV
-	console.log(something)
 });
