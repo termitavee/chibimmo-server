@@ -170,15 +170,15 @@ app.get('/inventory/:name', function (req, res) { })
 app.post('/create', function (req, res) {
 	//crear personaje
 	console.log('create character')
-	const { user, name, className = null, orientation = false, hair = null, hairColor, bodyColor } = parseBody(req.body)
-/* 	console.log(user)//root
+
+	const { user, name, className , orientation , hair , hairColor, bodyColor } = parseBody(req.body)
+ 	console.log(user._id)//root
 	console.log(name)//reddo
 	console.log(className)// [soldier, mage, rogue]
 	console.log(orientation)//[ofensive, defensive, neutral]
 	console.log(hair)
 	console.log(hairColor)
-	console.log(bodyColor) */
-	let userID = 0
+	console.log(bodyColor) 
 
 	if (name.length < 4) {
 		//TODO error too short
@@ -193,8 +193,9 @@ app.post('/create', function (req, res) {
 				res.send({ action: "create", status: "401", error: 'exist' })
 
 
-			db.collection('User').findOne({ "_id": user }).then((userFound) => {
+			db.collection('User').findOne({ "_id": user._id }).then((userFound) => {
 				console.log('userFound')
+				console.log(userFound)
 
 				if (userFound !== null) {
 					//Ceate default stats depending of the class and orientation
@@ -203,10 +204,12 @@ app.post('/create', function (req, res) {
 					console.log(stadistics)
 					//TODO add hair body and color
 					//pets and inventory is referenced from themselves because of the variable size
-					db.collection('Character').insert({ "userID": user, "_id": name, "type": className, 'orientation': orientation, "stadistics": stadistics, map: 1, position: { x: 100, y: 100 }, "started": new Date(), "equipment": '', achievements: [] })
+					
+					const char = { "userID": user._id, "_id": name, "type": className, 'orientation': orientation, "stadistics": stadistics, map: 1, position: { x: 100, y: 100 }, "started": new Date(), "equipment": '', achievements: [], "hair": hair, "hairColor": hairColor, "bodyColor": bodyColor }
+					db.collection('Character').insert(char)
 					console.log('inserted character ' + name)
 					//db.collection('inventory').insert({ "_ID": name, items: [] })
-					res.send({ action: "create", status: "202", error: '' })
+					res.send({ action: "create", status: "202", char })
 
 				} else {
 					console.log('user not found')
