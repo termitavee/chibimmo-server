@@ -205,7 +205,7 @@ app.post('/create', function (req, res) {
 					//TODO add hair body and color
 					//pets and inventory is referenced from themselves because of the variable size
 					
-					const char = { "userID": user._id, "_id": name, "type": className, 'orientation': orientation, "stadistics": stadistics, map: 1, position: { x: 100, y: 100 }, "started": new Date(), "equipment": '', achievements: [], "hair": hair, "hairColor": hairColor, "bodyColor": bodyColor }
+					const char = { "userID": user._id, "_id": name, "type": className, 'orientation': orientation, "stadistics": stadistics, map: 1, position: { x: 100, y: 100 },"direction": 0 , "started": new Date(), "equipment": '', achievements: [], "hair": hair, "hairColor": hairColor, "bodyColor": bodyColor }
 					db.collection('Character').insert(char)
 					console.log('inserted character ' + name)
 					//db.collection('inventory').insert({ "_ID": name, items: [] })
