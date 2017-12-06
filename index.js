@@ -8,7 +8,7 @@ const MongoClient = require('mongodb').MongoClient
 const url = 'mongodb://localhost:27017/chibimmo';
 
 const { fileLog, parseBody, printIP } = require('./public/utils');
-const { } = require('./public/db/db')
+const { updateLoginDate, updateToken,  deleteTokens } = require('./public/db/db')
 const classStats = require('./public/db/characterStats')
 
 const PORT = 3000
@@ -40,52 +40,84 @@ app.get('/', function (req, res) {
 
 app.post('/login', function (req, res) {
 
+	const { user, pass, token, remember, device } = parseBody(req.body)
 
-	const { user, pass, token = null, remember = false, device = null } = parseBody(req.body)
-
-	/*
-	if(token!=null && checkToken(user, device, token)){		
-		
-		const token = crypto.randomBytes(10).toString('hex');
-		console.log("token="+token)
-		updateToken(user,device, token)
-		res.send({status: "success", user: getFullUser(user)})
-		
-	}
-	*/
-	try {
-
+	//log In with token
+	if (remember && token != null) {
 		MongoClient.connect(url, function (err, db) {
+			db.collection('Tokens').findOne({ user, device }).then((tokenFound) => {
+				//tokenFound = {user, token, device,date}
+				if (tokenFound && tokenFound.user == user && tokenFound.token == token && tokenFound.device == device) {
 
-			db.collection('User').findOne({ "_id": user }).then((found) => {
-				console.log('found')
-				//TODO check token 
+					db.collection('User').findOne({ "_id": user }).then((userFound) => {
+						if (userFound) {
+							db.collection('Character').find({ "userID": user }, (err, characters) => {
 
-				if (found !== null) {
-					if (found.pass == pass) {
-						//TODO update user last login
-						db.collection('Character').find({ "userID": user }, (err, characters) => {
+								characters.toArray().then((characters) => {
+									userFound.characters = characters
+									const token = user + crypto.randomBytes(5).toString('hex') + device;
+									updateToken(db, user, device, token)
+									res.send({ action: "login", status: "202", user: userFound, token })
+								})
 
-							characters.toArray().then((characters) => {
-								//TODO find one
-								found.characters = characters
-
-								res.send({ action: "login", status: "202", user: found })
 							})
+						} else {
+							res.send({ action: "login", status: "302", user: false })
 
-						})
-					} else {
-						res.send({ action: "login", status: "401", error: "password" })
-					}
+						}
+
+					})
 				} else {
-					res.send({ action: "login", status: "401", error: "user" })
+					res.send({ action: "login", status: "302", user: false })
+
 				}
-
 			})
+		})
 
-		});
-	} catch (ex) {
-		res.send({ action: "login", status: "500", error: "db" })
+
+	} else {
+		//log in with password
+		try {
+
+			MongoClient.connect(url, function (err, db) {
+
+				db.collection('User').findOne({ "_id": user }).then((found) => {
+					console.log('found')
+					//TODO check token 
+
+					if (found !== null) {
+						if (found.pass == pass) {
+							//update user last login
+							updateLoginDate(db, user, )
+
+							//update/add token if necesary
+							const token = false
+							if (remember) {
+								token = user + crypto.randomBytes(5).toString('hex') + device;
+								updateToken(db, user, device, token)
+							} else {
+								deleteTokens(db, user, device)
+								
+							}
+
+							db.collection('Character').find({ "userID": user }, (err, characters) => {
+								characters.toArray().then((characters) => {
+									res.send({ action: "login", status: "202", user: { ...found, characters }, token })
+								})
+							})
+						} else {
+							res.send({ action: "login", status: "401", error: "password" })
+						}
+					} else {
+						res.send({ action: "login", status: "401", error: "user" })
+					}
+
+				})
+
+			});
+		} catch (ex) {
+			res.send({ action: "login", status: "500", error: "db" })
+		}
 	}
 
 })
@@ -98,13 +130,13 @@ app.post('/signup', function (req, res) {
 		//comprobar si el email es válido
 		console.log('check mail')
 		const emailPatt = /[A-Z0-9._%+-]+@[A-Z0-9.-]+.[A-Z]{2,4}/i;
+
 		if (!emailPatt.test(email)) {
 			console.log('email not valid')
 			res.send({ action: "signup", status: "401", error: "email" })
 		}
 
 		MongoClient.connect(url, function (err, db) {
-
 
 			let users = db.collection('User').insert({
 				"_id": user,
@@ -171,14 +203,14 @@ app.post('/create', function (req, res) {
 	//crear personaje
 	console.log('create character')
 
-	const { user, name, className , orientation , hair , hairColor, bodyColor } = parseBody(req.body)
- 	console.log(user._id)//root
+	const { user, name, className, orientation, hair, hairColor, bodyColor } = parseBody(req.body)
+	console.log(user._id)//root
 	console.log(name)//reddo
 	console.log(className)// [soldier, mage, rogue]
 	console.log(orientation)//[ofensive, defensive, neutral]
 	console.log(hair)
 	console.log(hairColor)
-	console.log(bodyColor) 
+	console.log(bodyColor)
 
 	if (name.length < 4) {
 		//TODO error too short
@@ -204,8 +236,8 @@ app.post('/create', function (req, res) {
 					console.log(stadistics)
 					//TODO add hair body and color
 					//pets and inventory is referenced from themselves because of the variable size
-					
-					const char = { "userID": user._id, "_id": name, "type": className, 'orientation': orientation, "stadistics": stadistics, map: 1, position: { x: 100, y: 100 },"direction": 0 , "started": new Date(), "equipment": '', achievements: [], "hair": hair, "hairColor": hairColor, "bodyColor": bodyColor }
+
+					const char = { "userID": user._id, "_id": name, "type": className, 'orientation': orientation, "stadistics": stadistics, map: 1, position: { x: 100, y: 100 }, "direction": 0, "started": new Date(), "equipment": '', achievements: [], "hair": hair, "hairColor": hairColor, "bodyColor": bodyColor }
 					db.collection('Character').insert(char)
 					console.log('inserted character ' + name)
 					//db.collection('inventory').insert({ "_ID": name, items: [] })
