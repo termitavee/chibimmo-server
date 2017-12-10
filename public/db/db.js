@@ -1,16 +1,19 @@
 //async operation, not return needed
-export function updateLoginDate(db, user) {
+
+updateLoginDate = (db, user)=> {
     db.collection('Character').update({ "_id": user }, { "login": new Date() })
 }
 
-export function updateToken(db, user, device, token) {
-    db.collection('Token').update({ user, device }, { "login": new Date() }, { upsert: true })
+updateToken=(db, user, device, token) =>{
+    db.collection('Token').update({ user, device }, { "login": new Date(), token }, { upsert: true })
 }
 
-export function deleteTokens(db, user, device) {
+deleteTokens=(db, user, device)=> {
     db.collection('Token').remove({ user, device })
 }
 //modelos
+
+module.exports = { updateLoginDate, updateToken, deleteTokens }
 
 class User {
     constructor(nick, pass, deskToken, mobToken, email, characters, started, login, friendList) {

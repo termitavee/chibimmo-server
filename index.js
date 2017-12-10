@@ -8,7 +8,7 @@ const MongoClient = require('mongodb').MongoClient
 const url = 'mongodb://localhost:27017/chibimmo';
 
 const { fileLog, parseBody, printIP } = require('./public/utils');
-const { updateLoginDate, updateToken,  deleteTokens } = require('./public/db/db')
+const { updateLoginDate, updateToken, deleteTokens } = require('./public/db/db')
 const classStats = require('./public/db/characterStats')
 
 const PORT = 3000
@@ -39,15 +39,17 @@ app.get('/', function (req, res) {
 });
 
 app.post('/login', function (req, res) {
-
 	const { user, pass, token, remember, device } = parseBody(req.body)
 
+	console.log('login')
+	console.log(parseBody(req.body))
 	//log In with token
 	if (remember && token != null) {
+		console.log('tokken login')
 		MongoClient.connect(url, function (err, db) {
-			db.collection('Tokens').findOne({ user, device }).then((tokenFound) => {
+			db.collection('Tokens').findOne({ user, device, token }).then((tokenFound) => {
 				//tokenFound = {user, token, device,date}
-				if (tokenFound && tokenFound.user == user && tokenFound.token == token && tokenFound.device == device) {
+				if (tokenFound) {
 
 					db.collection('User').findOne({ "_id": user }).then((userFound) => {
 						if (userFound) {
@@ -77,6 +79,7 @@ app.post('/login', function (req, res) {
 
 	} else {
 		//log in with password
+		console.log('normal login')
 		try {
 
 			MongoClient.connect(url, function (err, db) {
@@ -91,17 +94,17 @@ app.post('/login', function (req, res) {
 							updateLoginDate(db, user, )
 
 							//update/add token if necesary
-							const token = false
+							let token = false
 							if (remember) {
 								token = user + crypto.randomBytes(5).toString('hex') + device;
 								updateToken(db, user, device, token)
 							} else {
 								deleteTokens(db, user, device)
-								
+
 							}
 
-							db.collection('Character').find({ "userID": user }, (err, characters) => {
-								characters.toArray().then((characters) => {
+							db.collection('Character').find({ "userID": user }, (err, foundCharacters) => {
+								foundCharacters.toArray().then((characters) => {
 									res.send({ action: "login", status: "202", user: { ...found, characters }, token })
 								})
 							})
@@ -292,7 +295,9 @@ app.get('/enter', function (req, res) {
 //TODO toda la mecanica de cominicación del juego
 
 ioGame.on('connection', function (socket) {
-
+//.of('myNamespace').
+	//socket.to(<socketid>).emit('hey', 'I just met you');
+	
 	console.log("ioGame connection")
 	//TODO create new pet and update inventory here
 	socket.on('message', function (message) {
@@ -300,12 +305,15 @@ ioGame.on('connection', function (socket) {
 		//io.emit('chat', mensaje);
 		socket.broadcast.emit('message', { "mensaje": socket.username + " ha dicho: " + message });
 	});
-
+	socket.on('echo', function () {
+		socket.emit('echo')
+	})
 	//TODO toda la mecanica de comunicación del chat
 
 })
 
 ioChat.on('connection', function (socket) {
+
 	console.log("iochat connection")
 
 	console.log(chatList)
@@ -326,5 +334,5 @@ ioChat.on('connection', function (socket) {
 })
 
 server.listen(PORT, () => {
-	console.log("Server running on local ip " + printIP(PORT))
+	console.log("Server running on local ips " + printIP() + ' and port ' + PORT)
 });
