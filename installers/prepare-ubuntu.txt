@@ -1,0 +1,11 @@
+
+
+sudo apt-get install net-tools
+configuración: quitar bloqueo y apagado
+
+
+wget https://raw.githubusercontent.com/termitavee/chibimmo-server/master/installers/ubuntu.sh
+chmod +x ./ubuntu.sh
+sudo ./ubuntu.sh
+
+

@@ -17,8 +17,8 @@
   "dependencies": {
     "body-parser": "^1.18.2",
     "express": "^4.16.2",
-    "mongodb": "^2.2.33",
-    "nodemailer": "^4.4.0",
+    "mongodb": "^2.2.34",
+    "nodemailer": "^4.4.1",
     "socket.io": "^2.0.4",
     "webworker-threads": "^0.7.13"
   }

@@ -1,7 +1,7 @@
 var fs = require('fs');
 var util = require('util');
 
-const log_file = fs.createWriteStream(__dirname + '/logs/console.log', {flags : 'w'});
+const log_file = fs.createWriteStream(__dirname + '/console.log', {flags : 'w'});
 const log_stdout = process.stdout;
 
 
