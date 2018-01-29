@@ -1,4 +1,4 @@
-
+//TODO chibimmo > Error: secret option required for sessions
 logInSession = (s, n,r) => {
   if (!checkSession) {
     s.logged = n

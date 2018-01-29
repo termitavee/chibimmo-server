@@ -335,10 +335,10 @@ ioChat.on('connection', function (socket) {
 		socket.broadcast.emit('newMessage', {user,message});
 	})
 
-	socket.on('message', function (message) {
-		console.log('nuevo mensaje de "' + message.user + '": "' + message.content + '"');
-		const user = message.user
-		const message = message.content
+	socket.on('message', function (dispatch) {
+		console.log('nuevo mensaje de "' + dispatch.user + '": "' + dispatch.content + '"');
+		const user = dispatch.user
+		const message = dispatch.content
 
 		socket.broadcast.emit('newMessage', { user, message });
 	});
