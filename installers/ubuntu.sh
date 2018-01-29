@@ -35,6 +35,13 @@ git  clone https://github.com/termitavee/chibimmo-server.git
 cd ./chibimmo-server
 npm install
 
+#update ownership 
+sudo chown chibimmo:chibimmo -R ./
+sudo chown chibimmo:chibimmo -R ../.pm2
+sudo chown chibimmo:chibimmo -R ../.npm
+
+
 #monitoring and star server, not secure but itś a dummy account
+
 pm2 link c4b6u7cvvrkkpae kummc0fvr7plq8s termitavee-virtualbox
-pm2 start ../index.js  --name "chibimmo"
+pm2 start ./index.js  --name "chibimmo"

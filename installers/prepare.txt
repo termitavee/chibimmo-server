@@ -1,0 +1,21 @@
+
+
+sudo apt-get install net-tools
+configuración: quitar bloqueo y apagado
+
+
+wget https://raw.githubusercontent.com/termitavee/chibimmo-server/master/installers/ubuntu.sh
+chmod +x ./ubuntu.sh
+sudo ./ubuntu.sh
+
+to download
+git clone https://github.com/termitavee/chibimmo-server.git
+git clone https://github.com/termitavee/chibimmo-client.git
+git clone https://github.com/termitavee/chibimmo-mobile-support.git
+git clone https://github.com/termitavee/chibimmo-admin.git
+
+to mantain 
+git fetch https://github.com/termitavee/chibimmo-server.git
+git fetch https://github.com/termitavee/chibimmo-client.git
+git fetch https://github.com/termitavee/chibimmo-mobile-support.git
+git fetch https://github.com/termitavee/chibimmo-admin.git

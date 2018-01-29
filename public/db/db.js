@@ -4,16 +4,9 @@ updateLoginDate = (db, user)=> {
     db.collection('Character').update({ "_id": user }, { "login": new Date() })
 }
 
-updateToken=(db, user, device, token) =>{
-    db.collection('Token').update({ user, device }, { "login": new Date(), token }, { upsert: true })
-}
-
-deleteTokens=(db, user, device)=> {
-    db.collection('Token').remove({ user, device })
-}
 //modelos
 
-module.exports = { updateLoginDate, updateToken, deleteTokens }
+module.exports = { updateLoginDate }
 
 class User {
     constructor(nick, pass, deskToken, mobToken, email, characters, started, login, friendList) {
