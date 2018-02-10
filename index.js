@@ -210,7 +210,7 @@ app.post('/create', function (req, res) {
 		console.log('name short')
 		res.send({ action: "create", status: "401", error: "name" })
 	}*/
-
+//TIDI cambiar, al ser id único 
 	MongoClient.connect(url, function (err, db) {
 		db.collection('Character').findOne({ "_id": name }).then((found) => {
 
@@ -268,9 +268,37 @@ app.post('/deletecharacter', function (req, res) {
 
 })
 
+app.get('/news', function (req, res) {
+	//coge noticias de la db
+ })
+
 app.post('/news/new', function (req, res) {
 	//crear noticia
+	const { user, title, description, image } = parseBody(req.body)
+	const url = encodeURIComponent(title) //id
 
+	//get image
+	const origin = req.files.thumbnail.path
+	const destination = "/img/news/" + url
+
+	MongoClient.connect(url, function (err, db) {
+		db.collection('News').insert(char).then((err, found) => {
+
+			res.send({ action: "delete", status: "202", character: name })
+
+		})
+	})
+
+
+	fs.rename(origin, destination, function (err) {
+		if (err) console.log(err)
+		fs.unlink(origin, function (err) {
+			if (err) console.log(err)
+			else {
+				//TODO store url, title, content, image, author,
+			}
+		})
+	})
 
 })
 
