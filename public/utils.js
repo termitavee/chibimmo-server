@@ -14,9 +14,20 @@ parseBody = function(text){
     return JSON.parse(Object.keys(text)[0])
 }
 
-printIP = () =>{
+printIP = () => {
     var ips = require('child_process').execSync("ifconfig | grep inet | grep -v inet6 | awk '{gsub(/addr:/,\"\");print $2}'").toString().trim().split("\n")
     return `${ips}`
 }
 
-module.exports = { fileLog, parseBody, printIP}
+checkDB = (client, url) => {
+    client.connect(url, function (err, db) {
+        if (err) {
+            console.log("Database not found. It's running MongoDB?")
+        }
+    })
+    
+}
+
+
+
+module.exports = { fileLog, parseBody, printIP, checkDB}

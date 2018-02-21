@@ -10,7 +10,7 @@ const MongoClient = require('mongodb').MongoClient
 const url = 'mongodb://localhost:27017/chibimmo';
 
 //external functions
-const { fileLog, parseBody, printIP } = require('./public/utils');
+const { fileLog, parseBody, printIP, checkDB } = require('./public/utils');
 const { updateLoginDate } = require('./public/db/db')
 const classStats = require('./public/db/characterStats')
 const { logInSession, logOutSession, checkToken, checkSession } = require('./public/session')
@@ -18,6 +18,7 @@ const { logInSession, logOutSession, checkToken, checkSession } = require('./pub
 const PORT = 3000
 const app = express()
 const server = http.Server(app)
+const sesionID = Math.random().toString(36).substring(7);//crypto?
 
 const io = socketio(server);
 //const io = socketio(server, { transports: ['websocket'] });
@@ -36,7 +37,13 @@ app.use(express.static("public"));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(bodyParser.text());
-app.use(session({}))//TODO check if it's properly created
+
+app.use(session({
+	secret: sesionID,
+	resave: true,
+	saveUninitialized: false,
+	maxAge: 604800000
+}))//TODO check if it's properly created
 app.get('/', function (req, res) {
 
 	//res.send("hey")
@@ -69,6 +76,51 @@ app.post('/login', function (req, res) {
 						})
 					} else
 						res.send({ action: "login", status: "401", error: "password" })
+
+				})
+			})
+
+
+		} catch (ex) {
+			res.send({ action: "login", status: "500", error: "db" })
+		}
+
+	} else {
+		user ?
+			res.send({ action: "login", status: "401", error: "user" })
+			:
+			res.send({ action: "login", status: "401", error: "token" })
+	}
+})
+
+app.post('/admin/login', function (req, res) {
+	const { user, pass, remember } = parseBody(req.body)
+	let s = req.session
+
+	console.log('login')
+	console.log(parseBody(req.body))
+	const hasToken = checkToken(s)
+	if (user && (pass || hasToken)) {
+
+		try {
+
+			MongoClient.connect(url, function (err, db) {
+
+				db.collection('User').findOne({ "_id": user }).then((found) => {
+					console.log('found')
+					if (found.isAdmin) {
+						if (hasToken || found.pass === pass) {
+							logInSession(s, user, remember)
+							db.collection('Character').find({ "userID": user }, (err, foundCharacters) => {
+								foundCharacters.toArray().then((characters) => {
+									res.session.logged = true
+									res.send({ action: "login", status: "202", user: { ...found, characters } })
+								})
+							})
+						} else
+							res.send({ action: "login", status: "401", error: "password" })
+					} else
+						res.send({ action: "login", status: "401", error: "not admin" })
 
 				})
 			})
@@ -136,24 +188,29 @@ app.post('/signup', function (req, res) {
 })
 
 app.get('/user/:name', function (req, res) {
-	const { name } = req.query
-	let founded
+	if (res.session.logged) {
+		const { name } = req.query
+		let founded
 
-	db.collection('User').findOne({ "_id": name }).then((user) => {
-		console.log('user')
-		console.log(user)
-		if (user !== null) {
-			founded = user
-			db.collection('Character').find({ "userID": name }).then((characterList) => {
-				console.log('characterList')
-				console.log(characterList)
-				founded.characters = characterList
-				res.send({ action: "user", status: "202", found: founded })
-			})
-		}
-		else
-			res.send({ action: "user", status: "401", error: "User not found" })
-	})
+		db.collection('User').findOne({ "_id": name }).then((user) => {
+			console.log('user')
+			console.log(user)
+			if (user !== null) {
+				founded = user
+				db.collection('Character').find({ "userID": name }).then((characterList) => {
+					console.log('characterList')
+					console.log(characterList)
+					founded.characters = characterList
+					res.send({ action: "user", status: "202", found: founded })
+				})
+			}
+			else
+				res.send({ action: "user", status: "401", error: "User not found" })
+		})
+
+	} else {
+		res.send({ action: "signup", status: "401", error: 'not logged' })
+	}
 
 })
 
@@ -173,7 +230,13 @@ db.collection('Inventory').insert({
 })
 */
 
-app.get('/pets/:name', function (req, res) { })
+app.get('/pets/:name', function (req, res) {
+	if (res.session.logged) {
+
+	} else {
+		res.send({ action: "signup", status: "401", error: 'not logged' })
+	}
+})
 
 app.get('/inventory/:name', function (req, res) {
 	MongoClient.connect(url, function (err, db) {
@@ -210,7 +273,7 @@ app.post('/create', function (req, res) {
 		console.log('name short')
 		res.send({ action: "create", status: "401", error: "name" })
 	}*/
-//TIDI cambiar, al ser id único 
+	//TIDI cambiar, al ser id único 
 	MongoClient.connect(url, function (err, db) {
 		db.collection('Character').findOne({ "_id": name }).then((found) => {
 
@@ -270,7 +333,7 @@ app.post('/deletecharacter', function (req, res) {
 
 app.get('/news', function (req, res) {
 	//coge noticias de la db
- })
+})
 
 app.post('/news/new', function (req, res) {
 	//crear noticia
@@ -360,7 +423,7 @@ ioChat.on('connection', function (socket) {
 		const message = `joined`
 
 		socket.userName = userName
-		socket.broadcast.emit('newMessage', {user,message});
+		socket.broadcast.emit('newMessage', { user, message });
 	})
 
 	socket.on('message', function (dispatch) {
@@ -379,4 +442,5 @@ ioChat.on('connection', function (socket) {
 
 server.listen(PORT, () => {
 	console.log("Server running on local ips " + printIP() + ' and port ' + PORT)
+	checkDB(MongoClient, url)
 });
