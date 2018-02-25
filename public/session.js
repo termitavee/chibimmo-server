@@ -1,33 +1,35 @@
-//TODO chibimmo > Error: secret option required for sessions
-logInSession = (s, n,r) => {
-  if (!checkSession) {
-    s.logged = n
-    //TODO remember just the sesion or for 7 days
-    r ? req.session.cookie.maxAge = 604800000 : s.cookie.expires = false
+logInSession = (s, n, r) => {
 
-  } else {
+  if (!checkSession(s)) {
+    s.logged = n
+    //remember just the sesion or for 7 days
+    r ? s.cookie.maxAge = 604800000 : s.cookie.expires = false
+
+  } else
     s.touch()
-  }
+  s.admin = true
+
 }
 
 logOutSession = (s) => {
-  if (checkSession) {
+  if (checkSession(s)) {
     s.logged = false
   } else {
     //not logged
   }
 }
 
-setToken = (s,n) => {
+setToken = (s, n) => {
   return s.logged ? n : false
 }
 
 checkToken = (s) => {
-  return s.logged != false
+  console.log(s)
+  return s == undefined ? false : s.logged != false
 }
 
 checkSession = (s) => {
-  return (s.cookie.expires < new Date()) ? false : true
+  return (!s.logged || s.cookie._expires < new Date()) ? false : true
 }
 
 module.exports = { logInSession, logOutSession, setToken, checkToken, checkSession }

@@ -2,3 +2,4 @@ node_modules
 console.log
 notas
 chibimmo-server-1.0.0.tgz
+public/db/data.js
