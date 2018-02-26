@@ -1,11 +1,7 @@
-const fs = require('fs');
 const util = require('util');
 const nodemailer = require('nodemailer');
 
 const { mail, cred } = require('./db/data')
-
-const log_file = fs.createWriteStream(__dirname + '/console.log', { flags: 'w' });
-const log_stdout = process.stdout;
 
 const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -15,10 +11,6 @@ const transporter = nodemailer.createTransport({
         pass: mail.pass
     }
 });
-fileLog = function (d) {
-    log_file.write('[' + Date() + ']' + util.format(d) + '\n');
-    log_stdout.write(util.format(d) + '\n');
-};
 
 parseBody = function (t) {
     return JSON.parse(Object.keys(t)[0])
@@ -160,4 +152,4 @@ const forgetContent = {
 }
 
 
-module.exports = { fileLog, parseBody, printIP, checkDB, sendEmail, mailContentID, doHash }
+module.exports = { parseBody, printIP, checkDB, sendEmail, mailContentID, doHash }

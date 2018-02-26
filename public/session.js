@@ -1,13 +1,12 @@
-logInSession = (s, n, r) => {
+logInSession = (s, n, r, a) => {
 
   if (!checkSession(s)) {
     s.logged = n
-    //remember just the sesion or for 7 days
-    r ? s.cookie.maxAge = 604800000 : s.cookie.expires = false
 
+    s.remmember = r == true
+    s.admin = a == true
   } else
     s.touch()
-  s.admin = true
 
 }
 
@@ -24,7 +23,6 @@ setToken = (s, n) => {
 }
 
 checkToken = (s) => {
-  console.log(s)
   return s == undefined ? false : s.logged != false
 }
 

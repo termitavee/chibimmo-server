@@ -11,8 +11,8 @@ const MongoClient = require('mongodb').MongoClient
 const MongoStore = require('connect-mongo')(session);
 
 //external functions
-const { fileLog, parseBody, printIP, checkDB, mailContentID, doHash, generateID } = require('./public/utils');
-const { updateLoginDate, storeSignUpToken } = require('./public/db/db')
+const { parseBody, printIP, checkDB, mailContentID, doHash, generateID } = require('./public/utils');
+const { updateLoginDate, storeSignUpToken, validateUser } = require('./public/db/db')
 const classStats = require('./public/db/characterStats')
 const { logInSession, logOutSession, checkToken, checkSession } = require('./public/session')
 const { START, SIGNUP, SIGNIN, REMEMBER } = mailContentID
@@ -27,8 +27,8 @@ const io = socketio(server);
 //const io = socketio(server, { transports: ['websocket'] });
 const ioChat = io.of('/chat');
 const ioGame = io.of('/game');
-var chatConn = {}
-var gameConn = {}
+let chatConn = {}
+let gameConn = {}
 //TODO implement namespaces for private chat
 //TODO move all connection to new file
 
@@ -79,8 +79,8 @@ ioChat.on('connection', function (socket) {
 		socket.broadcast.emit('newMessage', { user, message });
 	});
 
-	client.on('disconnect', function () {
-		delete chatConn[client.id];
+	socket.on('disconnect', function () {
+		delete chatConn[socket.id];
 	});
 
 })
@@ -101,21 +101,29 @@ MongoClient.connect(MongoUrl, function (err, database) {
 	app.use(session({
 		secret: "sesionID",
 		store: new MongoStore({ db }),
+		cookie: { path: '/', httpOnly: false, secure: false, maxAge: 604800000 },
 		resave: true,
-		saveUninitialized: false,
+		saveUninitialized: true,
 		maxAge: 604800000
 	}))
 
-	app.get('/', function (req, res) {
+	app.post('/', function (req, res) {
 
 		res.redirect('https://chibimmo.tumblr.com/');
 
 	});
 
+	app.use(function (req, res, next) {
+		res.setHeader('Access-Control-Allow-Origin', '*');
+		res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');//get, add, update, remove
+		res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
+		res.setHeader('Access-Control-Allow-Credentials', 'true');
+		next();
+
+	})
+
 	app.post('/login', function (req, res) {
 		const { user, pass, remember, adminApp } = parseBody(req.body)
-		console.log('login')
-		console.log(req.session)
 
 		//console.log(parseBody(req.body))
 		const hasToken = checkToken(req.session)
@@ -129,7 +137,7 @@ MongoClient.connect(MongoUrl, function (err, database) {
 					if (found.admin || !adminApp) {
 						if (hasToken || found.pass === pass) {
 							logInSession(req.session, user, remember, found.admin)
-
+							console.log(req.session)
 							db.collection('Character').find({ "userID": user }, (err, foundCharacters) => {
 								foundCharacters.toArray().then((characters) => {
 									res.send({ action: "login", status: "202", user: { ...found, characters } })
@@ -204,40 +212,75 @@ MongoClient.connect(MongoUrl, function (err, database) {
 		}
 
 	})
-	app.get('activate/:id', (req, res) => {
-		const { id } = req.query
-		db.collection('Token').find({_id: id}).then((found) => {
-			console.log('users')
-			console.log(users)
 
-			res.send({ action: "user", status: "202", found: users })
+	app.get('/:id/activate', (req, res) => {
+		const { id } = req.query
+		db.collection('Token').findOne({ _id: id }).then((err, found) => {
+			console.log('found')
+			console.log(found)
+			if (found.token) {
+				validateUser(db, found._id, found.token)
+				//TODO show proper html
+				res.send({ action: "activate", status: "202", message: "User validated, now can login" })
+			} else {
+				//TODO proper html
+				res.send({ action: "activate", status: "404", message: "already validate or wrong url" })
+
+			}
+
 
 		})
 	})
-	app.get('/users/', function (req, res) {
-		if (res.session.logged) {
-			const { name } = req.query
-			let founded
 
-			db.collection('User').find({}).then((users) => {
-				console.log('users')
-				console.log(users)
+	app.get('/:id/reset', (req, res) => {
+		const { id } = req.query
+		//reset password for user
+		db.collection('Token').findOne({ _id: id }).then((err, found) => {
 
-				res.send({ action: "user", status: "202", found: users })
+			if (found.token) {
+				validateUser(db, found._id, found.token)
+				//TODO show proper html
+				res.send({ action: "activate", status: "202", message: "User validated, now can login" })
+			} else {
+				//TODO proper html
+				res.send({ action: "activate", status: "404", message: "already validate or wrong url" })
+
+			}
+
+
+		})
+	})
+
+	app.get('/user/', function (req, res) {
+
+		console.log('app.get("/users/")')
+
+		if (req.session.logged) {
+
+			db.collection('User').find({}, (err, found) => {
+
+				if (err)
+					res.send({ action: "user", status: "500" })
+				else
+					if (found)
+						found.toArray().then((users) => {
+
+							res.send({ action: "user", status: "202", found: users })
+						})
+					else { console.log(found); res.send({ action: "user", status: "202", found }) }
 
 			})
-
 		} else {
 			res.send({ action: "user", status: "401", error: 'not logged' })
 		}
 
 	})
 
-	app.post('/users/admin', function (req, res) {
-		if (res.session.logged && res.session.admin) {
+	app.post('/user/:name', function (req, res) {
+		if (req.session.logged && req.session.admin) {
 			const { user, admin } = parseBody(req.body)
 
-			db.collection('User').update({_id: user}, {admin}).then((user) => {
+			db.collection('User').update({ _id: user }, { admin }).then((user) => {
 				console.log('user')
 				console.log(user)
 
@@ -251,8 +294,43 @@ MongoClient.connect(MongoUrl, function (err, database) {
 
 	})
 
-	app.get('/users/:name', function (req, res) {
-		if (res.session.logged) {
+	app.put('/user/:name', function (req, res) {
+		console.log(req.session)
+		if (req.session.logged && req.session.admin) {
+			const name = req.query
+			const {admin} = parseBody(req.body)
+			db.collection('User').update({ _id: name }, { admin }).then((user) => {
+				res.send({ action: "admin", status: "202", found: user })
+			})
+
+		} else {
+			res.send({ action: "admin", status: "401", error: 'not logged' })
+		}
+
+	})
+
+	app.delete('/user/:name', function (req, res) {
+
+		console.log(req.session)
+		if (req.session.logged && req.session.admin) {
+			const { user, admin } = parseBody(req.body)
+
+			db.collection('User').update({ _id: user }, { admin }).then((user) => {
+				console.log('user')
+				console.log(user)
+
+				res.send({ action: "admin", status: "202", found: user })
+
+			})
+
+		} else {
+			res.send({ action: "admin", status: "401", error: 'not logged' })
+		}
+
+	})
+
+	app.get('/user/:name', function (req, res) {
+		if (req.session.logged) {
 			const { name } = req.query
 			let founded
 
@@ -279,7 +357,17 @@ MongoClient.connect(MongoUrl, function (err, database) {
 	})
 
 	app.get('/pets/:name', function (req, res) {
-		if (res.session.logged) {
+		if (req.session.logged) {
+
+			//TODO get all user'pet 
+
+		} else {
+			res.send({ action: "signup", status: "401", error: 'not logged' })
+		}
+	})
+
+	app.get('/pet/:name', function (req, res) {
+		if (req.session.logged) {
 
 			//TODO update 
 
@@ -288,22 +376,70 @@ MongoClient.connect(MongoUrl, function (err, database) {
 		}
 	})
 
-	app.post('/pets/:name', function (req, res) {
+	app.post('/pet/:name', function (req, res) {
 		const { updateItems } = parseBody(req.body)
 		const name = req.params.name
-		if (res.session.logged) {
+		if (req.session.logged) {
 
 
 			//TODO update or create
 			/* db.collection('Pet').insert({
-	"_id": (auto, no insert)
-	"name": nombre,
-	"user": usuario,
-	"activity": undefined, // if no date, is free, if date is working
-	"date": nombre,
-	}) 
-	db.collection.findAndModify
-	*/
+			"_id": (auto, no insert)
+			"name": nombre,
+			"user": usuario,
+			"activity": undefined, // if no date, is free, if date is working
+			"date": nombre,
+			}) 
+			db.collection.findAndModify
+			*/
+
+		} else {
+			res.send({ action: "inventory", status: "401", inventory: "not logged" })
+		}
+
+
+	})
+
+	app.put('/pet/:name', function (req, res) {
+		const { updateItems } = parseBody(req.body)
+		const name = req.params.name
+		if (req.session.logged) {
+
+
+			//TODO update or create
+			/* db.collection('Pet').insert({
+			"_id": (auto, no insert)
+			"name": nombre,
+			"user": usuario,
+			"activity": undefined, // if no date, is free, if date is working
+			"date": nombre,
+			}) 
+			db.collection.findAndModify
+			*/
+
+		} else {
+			res.send({ action: "inventory", status: "401", inventory: "not logged" })
+		}
+
+
+	})
+
+	app.delete('/pet/:name', function (req, res) {
+		const { updateItems } = parseBody(req.body)
+		const name = req.params.name
+		if (req.session.logged) {
+
+
+			//TODO update or create
+			/* db.collection('Pet').insert({
+			"_id": (auto, no insert)
+			"name": nombre,
+			"user": usuario,
+			"activity": undefined, // if no date, is free, if date is working
+			"date": nombre,
+			}) 
+			db.collection.findAndModify
+			*/
 
 		} else {
 			res.send({ action: "inventory", status: "401", inventory: "not logged" })
@@ -315,7 +451,7 @@ MongoClient.connect(MongoUrl, function (err, database) {
 	app.get('/inventory/:name', function (req, res) {
 
 		const name = req.params.name
-		if (res.session.logged) {
+		if (req.session.logged) {
 
 
 			db.collection('Inventory').findOne({ "_id": name }).then((found) => {
@@ -331,22 +467,22 @@ MongoClient.connect(MongoUrl, function (err, database) {
 
 	})
 
-	app.post('/inventory/:name', function (req, res) {
+	app.put('/inventory/:name', function (req, res) {
 		const { updateItems } = parseBody(req.body)
 		const name = req.params.name
-		if (res.session.logged) {
+		if (req.session.logged) {
 
 			//TODO update 
 			/* 
 	
-	db.collection('Inventory').insert({
-	"_id": item,
-	"quantity": param, 
-	
-	})
-	
-	db.collection.findAndModify
-	*/
+			db.collection('Inventory').insert({
+			"_id": item,
+			"quantity": param, 
+			
+			})
+			
+			db.collection.findAndModify
+			*/
 
 		} else {
 			res.send({ action: "inventory", status: "401", inventory: "not logged" })
@@ -355,12 +491,12 @@ MongoClient.connect(MongoUrl, function (err, database) {
 
 	})
 
-	app.post('/create', function (req, res) {
+	app.post('/character/:id', function (req, res) {
 		//crear personaje
 		console.log('create character')
-
-		const { user, name, className, orientation, hair, hairColor, bodyColor } = parseBody(req.body)
-		console.log(user._id)//root
+		const { user } = req.query
+		const { name, className, orientation, hair, hairColor, bodyColor } = parseBody(req.body)
+		console.log(user)//root
 		console.log(name)//reddo
 		console.log(className)// [soldier, mage, rogue]
 		console.log(orientation)//[ofensive, defensive, neutral]
@@ -381,7 +517,7 @@ MongoClient.connect(MongoUrl, function (err, database) {
 				res.send({ action: "create", status: "400", error: 'exist' })
 
 
-			db.collection('User').findOne({ "_id": user._id }).then((userFound) => {
+			db.collection('User').findOne({ "_id": user }).then((userFound) => {
 				console.log('userFound')
 				console.log(userFound)
 
@@ -393,7 +529,7 @@ MongoClient.connect(MongoUrl, function (err, database) {
 
 					//pets and inventory is referenced from themselves because of the variable size
 
-					const char = { "userID": user._id, "_id": name, "type": className, 'orientation': orientation, "stadistics": stadistics, map: 0, position: { x: 100, y: 100 }, "direction": 0, "started": new Date(), "equipment": { armor: 0, weapon: 0 }, achievements: [], "hair": hair, "hairColor": hairColor, "bodyColor": bodyColor }
+					const char = { "userID": user, "_id": name, "type": className, 'orientation': orientation, "stadistics": stadistics, map: 0, position: { x: 100, y: 100 }, "direction": 0, "started": new Date(), "equipment": { armor: 0, weapon: 0 }, achievements: [], "hair": hair, "hairColor": hairColor, "bodyColor": bodyColor }
 					db.collection('Character').insert(char)
 					console.log('inserted character ' + name)
 					//db.collection('inventory').insert({ "_ID": name, items: [] })
@@ -414,9 +550,8 @@ MongoClient.connect(MongoUrl, function (err, database) {
 
 	})
 
-
 	//TODO add/remove item in invenstory - get array, check item, add/update or remove
-	app.post('/deletecharacter', function (req, res) {
+	app.delete('/character/:id', function (req, res) {
 		//borrar personaje
 		console.log('delete user')
 		const { user, name } = parseBody(req.body)
@@ -432,34 +567,46 @@ MongoClient.connect(MongoUrl, function (err, database) {
 	})
 
 	app.get('/news', function (req, res) {
-		if (res.session.logged) {
-			const { name } = req.query
-			let founded
 
-			db.collection('news').find({}).then((news) => {
-				console.log('news')
-				console.log(news)
+		res.header('Access-Control-Allow-Credentials', 'true');
+		console.log('app.get("/news/")')
 
-				res.send({ action: "user", status: "202", found: news })
+		if (req.session.logged) {
 
-			})
+			try {
+				db.collection('News').find({}, (err, found) => {
+
+					if (err)
+						res.send({ action: "news", status: "500" })
+					else
+						if (found)
+							found.toArray().then((news) => {
+								res.send({ action: "news", status: "202", found: news })
+							})
+						else res.send({ action: "news", status: "202", found })
+
+				})
+			} catch (ex) {
+				console.log(ex)
+				res.send({ action: "news", status: "500" })
+			}
 
 		} else {
-			res.send({ action: "signup", status: "401", error: 'not logged' })
+			res.send({ action: "news", status: "401", error: 'not logged' })
 		}
 
 	})
 
-	app.post('/news/new', function (req, res) {
+	app.post('/news', function (req, res) {
 		//crear noticia
-		if (res.session.logged) {
+		if (req.session.logged) {
 			const { user, title, description, image } = parseBody(req.body)
 			const url = encodeURIComponent(title) + generateID(4)
 			const currentTime = Date()
 			//get image
 			const origin = req.files.thumbnail.path
-			const destination = "/img/news/" + url 
-			const insertion = { url, user, title, description, image: destination, created = currentTime, updated: currentTime }
+			const destination = "/img/news/" + url
+			const insertion = { url, user, title, description, image: destination, created: currentTime, updated: currentTime }
 
 			fs.rename(origin, destination, function (err) {
 				if (err) {
@@ -491,14 +638,14 @@ MongoClient.connect(MongoUrl, function (err, database) {
 
 	})
 
-	app.post('/news/edit', function (req, res) {
+	app.put('/news', function (req, res) {
 		//editar noticia
-		if (res.session.logged) {
+		if (req.session.logged) {
 			const { _id, url, user, title, description, image } = parseBody(req.body)
 
 			//get image
 			const origin = req.files.thumbnail.path
-			const destination = "/img/news/" + url 
+			const destination = "/img/news/" + url
 			const insertion = { url, user, title, description, image: destination, updated: Date() }
 
 			fs.rename(origin, destination, function (err) {
@@ -513,7 +660,7 @@ MongoClient.connect(MongoUrl, function (err, database) {
 						res.send({ action: "edit", status: "500" })
 					}
 					else {
-						db.collection('News').update({_id},insertion).then((err, found) => {
+						db.collection('News').update({ _id }, insertion).then((err, found) => {
 							if (!err) {
 
 								res.send({ action: "edit", status: "202" })
@@ -530,28 +677,28 @@ MongoClient.connect(MongoUrl, function (err, database) {
 		}
 	})
 
-	app.post('/news/delete', function (req, res) {
+	app.delete('/news', function (req, res) {
 		//borrar noticia
-		if (res.session.logged) {
+		if (req.session.logged) {
 			const { _id, title } = parseBody(req.body)
 
 			const storedImage = "/img/news/" + url
-			
-			fs.unlink(storedImage, function (err) {
-					if (err) {
-						console.error(err)
-						res.send({ action: "delete", status: "500" })
-					}
-					else {
-						db.collection('News').deleteOne({_id}).then((err, found) => {
-							if (!err) {
-								res.send({ action: "delete", status: "202" })
-							}
-							res.send({ action: "delete", status: "500" })
 
-						})
-					}
-				
+			fs.unlink(storedImage, function (err) {
+				if (err) {
+					console.error(err)
+					res.send({ action: "delete", status: "500" })
+				}
+				else {
+					db.collection('News').deleteOne({ _id }).then((err, found) => {
+						if (!err) {
+							res.send({ action: "delete", status: "202" })
+						}
+						res.send({ action: "delete", status: "500" })
+
+					})
+				}
+
 			})
 
 		} else {

@@ -8,13 +8,18 @@ storeSignUpToken = (db, user, token) => {
     db.collection('tokens').update({ "_id": user }, { "token": token })
 }
 
+validateUser = (db, user, token) => {
+    db.collection('user').update({ "_id": user }, )
+    removeSignUpToken(db, user, token)
+}
+
 removeSignUpToken = (db, user, token) => {
     db.collection('tokens').remove({ "_id": user })
 }
 
 //modelos
 
-module.exports = { updateLoginDate, storeSignUpToken, removeSignUpToken}
+module.exports = { updateLoginDate, storeSignUpToken, validateUser, removeSignUpToken}
 
 class User {
     constructor(nick, pass, deskToken, mobToken, email, characters, started, login, friendList) {
