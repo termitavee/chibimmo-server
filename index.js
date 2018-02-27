@@ -7,6 +7,7 @@ const crypto = require("crypto");
 const fs = require('fs');
 //const https = require('https')
 const session = require('express-session')
+const redis = require('socket.io-redis');
 const MongoClient = require('mongodb').MongoClient
 const MongoStore = require('connect-mongo')(session);
 
@@ -19,7 +20,7 @@ const { START, SIGNUP, SIGNIN, REMEMBER } = mailContentID
 
 //server data
 const MongoUrl = 'mongodb://localhost:27017/chibimmo';
-const PORT = 3000
+const PORT = 1993
 const app = express()
 const server = http.Server(app)
 let db;
@@ -34,12 +35,13 @@ let gameConn = {}
 
 //io.on('connection', function (socket) {console.log("default connection")})
 //TODO toda la mecanica de cominicación del juego
+io.adapter(redis({ host: 'localhost', port: 6379 }));
 
 ioGame.on('connection', function (socket) {
 	//.of('myNamespace').
 	//socket.to(<socketid>).emit('hey', 'I just met you');
-	chatConn
 	console.log("ioGame connection")
+	
 	//TODO create new pet and update inventory here
 	socket.on('message', function (message) {
 		console.log('nuevo mensaje de "' + message.username + '": "' + message.content + '"');
@@ -64,7 +66,7 @@ ioChat.on('connection', function (socket) {
 
 		console.log(chatConn)
 		console.log(socket)
-		const user = `${isPhone ? "${userName}" : "${nick}(${userName})"}`
+		const user = isPhone ? `${userName}` : `${nick}(${userName})`
 		const message = `joined`
 
 		socket.userName = userName
@@ -107,7 +109,7 @@ MongoClient.connect(MongoUrl, function (err, database) {
 		maxAge: 604800000
 	}))
 
-	app.post('/', function (req, res) {
+	app.get('/', function (req, res) {
 
 		res.redirect('https://chibimmo.tumblr.com/');
 
@@ -131,16 +133,18 @@ MongoClient.connect(MongoUrl, function (err, database) {
 
 			try {
 
-				db.collection('User').findOne({ "_id": user }).then((found) => {
+				db.collection('User').findOne({ "_id": user }).then((err, found) => {
 					console.log('found')
 					console.log(found)
+					console.log('err')
+					console.log(err)
 					if (found.admin || !adminApp) {
 						if (hasToken || found.pass === pass) {
 							logInSession(req.session, user, remember, found.admin)
 							console.log(req.session)
 							db.collection('Character').find({ "userID": user }, (err, foundCharacters) => {
 								foundCharacters.toArray().then((characters) => {
-									res.send({ action: "login", status: "202", user: { ...found, characters } })
+									res.send({ action: "login", status: "202", user: { ...found, characters, remember } })
 								})
 							})
 						} else
@@ -213,7 +217,7 @@ MongoClient.connect(MongoUrl, function (err, database) {
 
 	})
 
-	app.get('/:id/activate', (req, res) => {
+	app.get('/activate/:id', (req, res) => {
 		const { id } = req.query
 		db.collection('Token').findOne({ _id: id }).then((err, found) => {
 			console.log('found')
@@ -298,7 +302,7 @@ MongoClient.connect(MongoUrl, function (err, database) {
 		console.log(req.session)
 		if (req.session.logged && req.session.admin) {
 			const name = req.query
-			const {admin} = parseBody(req.body)
+			const { admin } = parseBody(req.body)
 			db.collection('User').update({ _id: name }, { admin }).then((user) => {
 				res.send({ action: "admin", status: "202", found: user })
 			})
@@ -450,9 +454,9 @@ MongoClient.connect(MongoUrl, function (err, database) {
 
 	app.get('/inventory/:name', function (req, res) {
 
-		const name = req.params.name
-		if (req.session.logged) {
 
+		if (req.session.logged) {
+			const name = req.params.name
 
 			db.collection('Inventory').findOne({ "_id": name }).then((found) => {
 				if (found)
@@ -489,6 +493,24 @@ MongoClient.connect(MongoUrl, function (err, database) {
 		}
 
 
+	})
+
+	app.get('/character/:id', function (req, res) {
+		//crear personaje
+		if (req.session.logged) {
+			const name = req.params.id
+			db.collection('Character').findOne({ "_id": name }).then((err, found) => {
+
+				if (found == null)
+					res.send({ action: "getCharacter", status: "404", error: 'dont exist' })
+				else
+					res.send({ action: "create", status: "202", character: found })
+				
+			})
+
+		} else {
+			res.send({ action: "inventory", status: "401", inventory: "not logged" })
+		}
 	})
 
 	app.post('/character/:id', function (req, res) {
@@ -568,31 +590,24 @@ MongoClient.connect(MongoUrl, function (err, database) {
 
 	app.get('/news', function (req, res) {
 
-		res.header('Access-Control-Allow-Credentials', 'true');
 		console.log('app.get("/news/")')
 
-		if (req.session.logged) {
+		try {
+			db.collection('News').find({}, (err, found) => {
 
-			try {
-				db.collection('News').find({}, (err, found) => {
+				if (err)
+					res.send({ action: "news", status: "500" })
+				else
+					if (found)
+						found.toArray().then((news) => {
+							res.send({ action: "news", status: "202", found: news })
+						})
+					else res.send({ action: "news", status: "202", found })
 
-					if (err)
-						res.send({ action: "news", status: "500" })
-					else
-						if (found)
-							found.toArray().then((news) => {
-								res.send({ action: "news", status: "202", found: news })
-							})
-						else res.send({ action: "news", status: "202", found })
-
-				})
-			} catch (ex) {
-				console.log(ex)
-				res.send({ action: "news", status: "500" })
-			}
-
-		} else {
-			res.send({ action: "news", status: "401", error: 'not logged' })
+			})
+		} catch (ex) {
+			console.log(ex)
+			res.send({ action: "news", status: "500" })
 		}
 
 	})

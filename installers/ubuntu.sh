@@ -23,9 +23,9 @@ sudo apt-get install -y nodejs
 # install daemon for server
 sudo npm install pm2 -g
 
-#install database
+#install databases
 sudo apt-get install -y mongodb-org
-
+sudo apt-get install redis-server -y
 #start mongodb with system
 sudo systemctl enable mongod.service
 

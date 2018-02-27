@@ -8,7 +8,7 @@
     "restart": "pm2 restart chibimmo",
     "log": "pm2 log",
     "db": "sudo service mongod start",
-    "dev": "pm2 start index.js --name chibimmo --watch",
+    "dev": "pm2 start index.js --name chibimmo -i max",
     "stop": "pm2 delete chibimmo",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -22,6 +22,7 @@
     "mongodb": "^2.2.34",
     "nodemailer": "^4.4.1",
     "socket.io": "^2.0.4",
+    "socket.io-redis": "^5.2.0",
     "webworker-threads": "^0.7.13"
   }
 }
