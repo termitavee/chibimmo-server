@@ -133,7 +133,7 @@ MongoClient.connect(MongoUrl, function (err, database) {
 
 			try {
 
-				db.collection('User').findOne({ "_id": user }).then((err, found) => {
+				db.collection('User').findOne({ "_id": user }).then((found, err) => {
 					console.log('found')
 					console.log(found)
 					console.log('err')

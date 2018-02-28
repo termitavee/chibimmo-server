@@ -2,7 +2,7 @@ logInSession = (s, n, r, a) => {
 
   if (!checkSession(s)) {
     s.logged = n
-
+    
     s.remmember = r == true
     s.admin = a == true
   } else
@@ -23,7 +23,7 @@ setToken = (s, n) => {
 }
 
 checkToken = (s) => {
-  return s == undefined ? false : s.logged != false
+  return (s != undefined && s.remmember )
 }
 
 checkSession = (s) => {
