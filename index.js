@@ -12,7 +12,7 @@ const MongoClient = require('mongodb').MongoClient
 const MongoStore = require('connect-mongo')(session);
 
 //external functions
-const { parseBody, printIP, checkDB, mailContentID, doHash, generateID } = require('./public/utils');
+const { parseBody, getIP, checkDB, mailContentID, doHash, generateID } = require('./public/utils');
 const { updateLoginDate, storeSignUpToken, validateUser } = require('./public/db/db')
 const classStats = require('./public/db/characterStats')
 const { logInSession, logOutSession, checkToken, checkSession } = require('./public/session')
@@ -41,7 +41,7 @@ ioGame.on('connection', function (socket) {
 	//.of('myNamespace').
 	//socket.to(<socketid>).emit('hey', 'I just met you');
 	console.log("ioGame connection")
-	
+
 	//TODO create new pet and update inventory here
 	socket.on('message', function (message) {
 		console.log('nuevo mensaje de "' + message.username + '": "' + message.content + '"');
@@ -114,14 +114,13 @@ MongoClient.connect(MongoUrl, function (err, database) {
 		res.redirect('https://chibimmo.tumblr.com/');
 
 	});
-
+	//after this, these headers are needed
 	app.use(function (req, res, next) {
 		res.setHeader('Access-Control-Allow-Origin', '*');
 		res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');//get, add, update, remove
-		res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
+		res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type', "application/x-www-form-urlencoded");
 		res.setHeader('Access-Control-Allow-Credentials', 'true');
 		next();
-
 	})
 
 	app.post('/login', function (req, res) {
@@ -134,14 +133,11 @@ MongoClient.connect(MongoUrl, function (err, database) {
 			try {
 
 				db.collection('User').findOne({ "_id": user }).then((found, err) => {
-					console.log('found')
-					console.log(found)
-					console.log('err')
-					console.log(err)
+
 					if (found.admin || !adminApp) {
 						if (hasToken || found.pass === pass) {
 							logInSession(req.session, user, remember, found.admin)
-							console.log(req.session)
+
 							db.collection('Character').find({ "userID": user }, (err, foundCharacters) => {
 								foundCharacters.toArray().then((characters) => {
 									res.send({ action: "login", status: "202", user: { ...found, characters, remember } })
@@ -220,8 +216,8 @@ MongoClient.connect(MongoUrl, function (err, database) {
 	app.get('/activate/:id', (req, res) => {
 		const { id } = req.query
 		db.collection('Token').findOne({ _id: id }).then((err, found) => {
-			console.log('found')
-			console.log(found)
+
+
 			if (found.token) {
 				validateUser(db, found._id, found.token)
 				//TODO show proper html
@@ -235,6 +231,7 @@ MongoClient.connect(MongoUrl, function (err, database) {
 
 		})
 	})
+
 
 	app.get('/:id/reset', (req, res) => {
 		const { id } = req.query
@@ -255,6 +252,14 @@ MongoClient.connect(MongoUrl, function (err, database) {
 		})
 	})
 
+	//after this, logged is needed
+	app.use(function (req, res, next) {
+		if (req.session && req.session.logged)
+			next();
+		else
+			es.send({ action: "user", status: "401", error: 'not logged' })
+	})
+
 	app.get('/user/', function (req, res) {
 
 		console.log('app.get("/users/")')
@@ -271,7 +276,7 @@ MongoClient.connect(MongoUrl, function (err, database) {
 
 							res.send({ action: "user", status: "202", found: users })
 						})
-					else { console.log(found); res.send({ action: "user", status: "202", found }) }
+					else { ; res.send({ action: "user", status: "202", found }) }
 
 			})
 		} else {
@@ -298,24 +303,8 @@ MongoClient.connect(MongoUrl, function (err, database) {
 
 	})
 
-	app.put('/user/:name', function (req, res) {
-		console.log(req.session)
-		if (req.session.logged && req.session.admin) {
-			const name = req.query
-			const { admin } = parseBody(req.body)
-			db.collection('User').update({ _id: name }, { admin }).then((user) => {
-				res.send({ action: "admin", status: "202", found: user })
-			})
-
-		} else {
-			res.send({ action: "admin", status: "401", error: 'not logged' })
-		}
-
-	})
-
 	app.delete('/user/:name', function (req, res) {
 
-		console.log(req.session)
 		if (req.session.logged && req.session.admin) {
 			const { user, admin } = parseBody(req.body)
 
@@ -505,7 +494,7 @@ MongoClient.connect(MongoUrl, function (err, database) {
 					res.send({ action: "getCharacter", status: "404", error: 'dont exist' })
 				else
 					res.send({ action: "create", status: "202", character: found })
-				
+
 			})
 
 		} else {
@@ -514,17 +503,10 @@ MongoClient.connect(MongoUrl, function (err, database) {
 	})
 
 	app.post('/character/:id', function (req, res) {
-		//crear personaje
-		console.log('create character')
+
 		const { user } = req.query
 		const { name, className, orientation, hair, hairColor, bodyColor } = parseBody(req.body)
-		console.log(user)//root
-		console.log(name)//reddo
-		console.log(className)// [soldier, mage, rogue]
-		console.log(orientation)//[ofensive, defensive, neutral]
-		console.log(hair)
-		console.log(hairColor)
-		console.log(bodyColor)
+
 
 		/*if (name.length < 4) {
 			// error too short
@@ -540,8 +522,7 @@ MongoClient.connect(MongoUrl, function (err, database) {
 
 
 			db.collection('User').findOne({ "_id": user }).then((userFound) => {
-				console.log('userFound')
-				console.log(userFound)
+
 
 				if (userFound !== null) {
 					//Ceate default stats depending of the class and orientation
@@ -558,7 +539,6 @@ MongoClient.connect(MongoUrl, function (err, database) {
 					res.send({ action: "create", status: "202", char })
 
 				} else {
-					console.log('user not found')
 					res.send({ action: "create", status: "401", error: 'unknow user' })
 				}
 
@@ -572,16 +552,15 @@ MongoClient.connect(MongoUrl, function (err, database) {
 
 	})
 
-	//TODO add/remove item in invenstory - get array, check item, add/update or remove
 	app.delete('/character/:id', function (req, res) {
 		//borrar personaje
-		console.log('delete user')
-		const { user, name } = parseBody(req.body)
-
-
-		db.collection('Character').remove({ "userID": user, "_id": name }).then((err, found) => {
-
-			res.send({ action: "delete", status: "202", character: name })
+		const id = req.params.id
+		console.log(id)
+		db.collection('Character').remove({ "_id": id }).then((result) => {
+			if (result.result.ok == 1)
+				res.send({ action: "delete", status: "202", deleted: result.result.ok })
+			else
+				res.send({ action: "delete", status: "500", deleted: result.result.ok })
 
 		})
 
@@ -612,115 +591,6 @@ MongoClient.connect(MongoUrl, function (err, database) {
 
 	})
 
-	app.post('/news', function (req, res) {
-		//crear noticia
-		if (req.session.logged) {
-			const { user, title, description, image } = parseBody(req.body)
-			const url = encodeURIComponent(title) + generateID(4)
-			const currentTime = Date()
-			//get image
-			const origin = req.files.thumbnail.path
-			const destination = "/img/news/" + url
-			const insertion = { url, user, title, description, image: destination, created: currentTime, updated: currentTime }
-
-			fs.rename(origin, destination, function (err) {
-				if (err) {
-					console.error(err)
-					//res.send({ action: "delete", status: "500" })
-
-				}
-				fs.unlink(origin, function (err) {
-					if (err) {
-						console.error(err)
-						//res.send({ action: "delete", status: "500" })
-					}
-					else {
-						db.collection('News').insert(insertion).then((err, found) => {
-							if (!err) {
-								//TODOretunr id?
-								res.send({ action: "create", status: "202" })
-							}
-							res.send({ action: "create", status: "500" })
-
-						})
-					}
-				})
-			})
-
-		} else {
-			res.send({ action: "create", status: "401", error: 'not logged' })
-		}
-
-	})
-
-	app.put('/news', function (req, res) {
-		//editar noticia
-		if (req.session.logged) {
-			const { _id, url, user, title, description, image } = parseBody(req.body)
-
-			//get image
-			const origin = req.files.thumbnail.path
-			const destination = "/img/news/" + url
-			const insertion = { url, user, title, description, image: destination, updated: Date() }
-
-			fs.rename(origin, destination, function (err) {
-				if (err) {
-					console.error(err)
-					res.send({ action: "edit", status: "500" })
-
-				}
-				fs.unlink(origin, function (err) {
-					if (err) {
-						console.error(err)
-						res.send({ action: "edit", status: "500" })
-					}
-					else {
-						db.collection('News').update({ _id }, insertion).then((err, found) => {
-							if (!err) {
-
-								res.send({ action: "edit", status: "202" })
-							}
-							res.send({ action: "edit", status: "500" })
-
-						})
-					}
-				})
-			})
-
-		} else {
-			res.send({ action: "signup", status: "401", error: 'not logged' })
-		}
-	})
-
-	app.delete('/news', function (req, res) {
-		//borrar noticia
-		if (req.session.logged) {
-			const { _id, title } = parseBody(req.body)
-
-			const storedImage = "/img/news/" + url
-
-			fs.unlink(storedImage, function (err) {
-				if (err) {
-					console.error(err)
-					res.send({ action: "delete", status: "500" })
-				}
-				else {
-					db.collection('News').deleteOne({ _id }).then((err, found) => {
-						if (!err) {
-							res.send({ action: "delete", status: "202" })
-						}
-						res.send({ action: "delete", status: "500" })
-
-					})
-				}
-
-			})
-
-		} else {
-			res.send({ action: "signup", status: "401", error: 'not logged' })
-		}
-	})
-
 	app.get('/enter', function (req, res) {
 		//pasa del launcher al juego (redireccionar a /game?) 
 		const { user, name } = parseBody(req.body)
@@ -733,9 +603,128 @@ MongoClient.connect(MongoUrl, function (err, database) {
 		})
 	})
 
+	// after this, admin is needed
+	app.use(function (req, res, next) {
+		if (req.session.admin)
+			next();
+		else
+			res.send({ action: "admin", status: "403", content: '' })
+	})
+
+	app.put('/user/:name', function (req, res) {
+
+		const name = req.query
+		const { admin } = parseBody(req.body)
+		db.collection('User').update({ _id: name }, { admin }).then((user) => {
+			res.send({ action: "admin", status: "202", found: user })
+		})
+
+	})
+
+	app.post('/news', function (req, res) {
+		//crear noticia
+
+		const { user, title, description, image } = parseBody(req.body)
+		const url = encodeURIComponent(title) + generateID(4)
+		const currentTime = Date()
+		//get image
+		const origin = req.files.thumbnail.path
+		const destination = "/img/news/" + url
+		const insertion = { url, user, title, description, image: destination, created: currentTime, updated: currentTime }
+
+		fs.rename(origin, destination, function (err) {
+			if (err) {
+				console.error(err)
+				//res.send({ action: "delete", status: "500" })
+
+			}
+			fs.unlink(origin, function (err) {
+				if (err) {
+					console.error(err)
+					//res.send({ action: "delete", status: "500" })
+				}
+				else {
+					db.collection('News').insert(insertion).then((err, found) => {
+						if (!err) {
+							//TODOretunr id?
+							res.send({ action: "create", status: "202" })
+						}
+						res.send({ action: "create", status: "500" })
+
+					})
+				}
+			})
+		})
+
+
+
+	})
+
+	app.put('/news', function (req, res) {
+		//editar noticia
+
+		const { _id, url, user, title, description, image } = parseBody(req.body)
+
+		//get image
+		const origin = req.files.thumbnail.path
+		const destination = "/img/news/" + url
+		const insertion = { url, user, title, description, image: destination, updated: Date() }
+
+		fs.rename(origin, destination, function (err) {
+			if (err) {
+				console.error(err)
+				res.send({ action: "edit", status: "500" })
+
+			}
+			fs.unlink(origin, function (err) {
+				if (err) {
+					console.error(err)
+					res.send({ action: "edit", status: "500" })
+				}
+				else {
+					db.collection('News').update({ _id }, insertion).then((err, found) => {
+						if (!err) {
+
+							res.send({ action: "edit", status: "202" })
+						}
+						res.send({ action: "edit", status: "500" })
+
+					})
+				}
+			})
+		})
+
+	})
+
+	app.delete('/news', function (req, res) {
+		//borrar noticia
+		const { _id, title } = parseBody(req.body)
+
+		const storedImage = "/img/news/" + url
+
+		fs.unlink(storedImage, function (err) {
+			if (err) {
+				console.error(err)
+				res.send({ action: "delete", status: "500" })
+			}
+			else {
+				db.collection('News').deleteOne({ _id }).then((err, found) => {
+					if (!err) {
+						res.send({ action: "delete", status: "202" })
+					}
+					res.send({ action: "delete", status: "500" })
+
+				})
+			}
+
+		})
+
+	})
+
+
 	// Start the application after and only if the database connection is ready
 	server.listen(PORT, () => {
-		console.log("Server running on local ips " + printIP() + ' and port ' + PORT)
+		console.log("Server running on local ips " + getIP() + ' and port ' + PORT)
 		//sendEmail('project.chibimmo@gmail.com', START)
 
 	});

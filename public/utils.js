@@ -11,20 +11,22 @@ const transporter = nodemailer.createTransport({
         pass: mail.pass
     }
 });
+const
 
-parseBody = function (t) {
-    return JSON.parse(Object.keys(t)[0])
-}
+    parseBody = function (t) {
+        return JSON.parse(Object.keys(t)[0])
+    }
 
-printIP = () => {
-    var ips = require('child_process').execSync("ifconfig | grep inet | grep -v inet6 | awk '{gsub(/addr:/,\"\");print $2}'").toString().trim().split("\n")
-    return `${ips}`
+getIP = () => {
+    const ips = require('child_process').execSync("ifconfig | grep inet | grep -v inet6 | awk '{gsub(/addr:/,\"\");print $2}'").toString().trim().split("\n")
+    return ips.filter(i => i != "127.0.0.1")
+
 }
 
 checkDB = (client, url) => {
     client.connect(url, function (err, db) {
         if (err) {
-            console.log("Database not found. It's running MongoDB?")
+            console.error("Database not found. It's running MongoDB?")
         } else {
             console.log("Database found.")
         }
@@ -43,12 +45,14 @@ stringInject = (t, i) => {
         });
     }
 }
+
+//reference to rammstein \m/
 doHash = (s, h = 'md5') => {
     //a = typeof h != null ? a : 'md5';
     return crypto.createHash(h).update(email).digest('hex');
 }
 
-generateID = (a=2) => {
+generateID = (a = 2) => {
     return Math.random().toString(36).substring(a);
 }
 
@@ -104,7 +108,7 @@ sendEmail = (userMail, type, args) => {
 
         transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
-                console.log(error);
+                console.error(error);
             } else {
                 console.log('Message sent successfuly to: %s', info.accepted);
             }
@@ -135,9 +139,9 @@ const startContent = {
 }
 
 const signUpContent = {
-    subject: "",
-    text: "",
-    html: ""
+    subject: "Welcome to chibimmo",
+    text: `in order to activate your account, click here  www.${getIP()[0]}:1993/activate/:id`,
+    html: "<p>in order to activate your account, click here  www.${getIP()[0]}:1993/activate/:id</p>"
 }
 const signInContent = {
     subject: "",
@@ -152,4 +156,4 @@ const forgetContent = {
 }
 
 
-module.exports = { parseBody, printIP, checkDB, sendEmail, mailContentID, doHash }
+module.exports = { parseBody, getIP, checkDB, sendEmail, mailContentID, doHash }
