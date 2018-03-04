@@ -4,11 +4,11 @@
   "description": "Serverside work for this mmo",
   "main": "index.js",
   "scripts": {
-    "start": "pm2 start index.js --name chibimmo -i max",
+    "start": "pm2 start index.js --name chibimmo ",
     "restart": "pm2 restart chibimmo",
     "log": "pm2 log",
     "db": "sudo service mongod start",
-    "dev": "pm2 start index.js --name chibimmo",
+    "dev": "pm2 start index.js --name chibimmo -i max",
     "stop": "pm2 delete chibimmo",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

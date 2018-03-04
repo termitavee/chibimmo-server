@@ -3,7 +3,6 @@ const socketio = require('socket.io')
 const express = require('express')
 const http = require('http')
 const bodyParser = require('body-parser');
-const crypto = require("crypto");
 const fs = require('fs');
 //const https = require('https')
 const session = require('express-session')
@@ -41,7 +40,7 @@ ioGame.on('connection', function (socket) {
 	//.of('myNamespace').
 	//socket.to(<socketid>).emit('hey', 'I just met you');
 	console.log("ioGame connection")
-
+	socket.emit('connection', 'welcome')
 	//TODO create new pet and update inventory here
 	socket.on('message', function (message) {
 		console.log('nuevo mensaje de "' + message.username + '": "' + message.content + '"');
@@ -59,6 +58,8 @@ ioChat.on('connection', function (socket) {
 
 	console.log("iochat connection")
 	console.log(chatConn)
+
+	socket.emit('connection', 'welcome')
 	chatConn[socket.id] = socket
 
 	socket.on('setUser', function (userName, isPhone, nick) {
@@ -110,8 +111,8 @@ MongoClient.connect(MongoUrl, function (err, database) {
 	}))
 
 	app.get('/', function (req, res) {
-
-		res.redirect('https://chibimmo.tumblr.com/');
+		res.send({ action: "echo", status: "202", session: req.session })
+		//res.redirect('https://chibimmo.tumblr.com/');
 
 	});
 	//after this, these headers are needed
@@ -126,7 +127,8 @@ MongoClient.connect(MongoUrl, function (err, database) {
 	app.post('/login', function (req, res) {
 		const { user, pass, remember, adminApp } = parseBody(req.body)
 
-		//console.log(parseBody(req.body))
+		console.log('LogIn')
+		console.log(req.session)
 		const hasToken = checkToken(req.session)
 		if (user && (pass || hasToken)) {
 
@@ -189,7 +191,8 @@ MongoClient.connect(MongoUrl, function (err, database) {
 				"verified": false,
 			}, (err, result) => {
 				console.log('finished')
-
+				console.log(err)
+				console.log(result)
 				if (err == null) {
 
 					const mailData = doHash(email)
@@ -217,7 +220,6 @@ MongoClient.connect(MongoUrl, function (err, database) {
 		const { id } = req.query
 		db.collection('Token').findOne({ _id: id }).then((err, found) => {
 
-
 			if (found.token) {
 				validateUser(db, found._id, found.token)
 				//TODO show proper html
@@ -228,10 +230,8 @@ MongoClient.connect(MongoUrl, function (err, database) {
 
 			}
 
-
 		})
 	})
-
 
 	app.get('/:id/reset', (req, res) => {
 		const { id } = req.query
